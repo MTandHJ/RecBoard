@@ -136,7 +136,7 @@ class SASRec(freerec.models.SeqRecArch):
     def sure_trainpipe(self, maxlen: int, batch_size: int):
         return self.dataset.train().shuffled_seqs_source(
            maxlen=maxlen 
-        ).sharding_filter().seq_train_yielding_pos_(
+        ).seq_train_yielding_pos_(
             start_idx_for_target=1, end_idx_for_input=-1
         ).seq_train_sampling_neg_(
             num_negatives=1
@@ -169,7 +169,7 @@ class SASRec(freerec.models.SeqRecArch):
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         seqs = data[self.ISeq]
-        padding_mask = (seqs == 0).unsqueeze(-1)
+        padding_mask = (seqs == self.PADDING_VALUE).unsqueeze(-1)
         seqs = self.Item.embeddings(seqs) # (B, S) -> (B, S, D)
         seqs *= self.embedding_dim ** 0.5
         seqs = self.embdDropout(self.mark_position(seqs))
@@ -194,7 +194,7 @@ class SASRec(freerec.models.SeqRecArch):
         posLabels = torch.ones_like(posLogits)
         negLabels = torch.zeros_like(negLogits)
 
-        indices = data[self.ISeq] != 0
+        indices = data[self.ISeq] != self.PADDING_VALUE
         rec_loss = self.criterion(posLogits[indices], posLabels[indices]) + \
             self.criterion(negLogits[indices], negLabels[indices])
 
@@ -220,7 +220,7 @@ class CoachForSASRec(freerec.launcher.Coach):
 
     def train_per_epoch(self, epoch: int):
         for data in self.dataloader:
-            data = self.try_to_device(data)
+            data = self.dict_to_device(data)
             loss = self.model(data)
 
             self.optimizer.zero_grad()
@@ -229,13 +229,14 @@ class CoachForSASRec(freerec.launcher.Coach):
            
             self.monitor(
                 loss.item(), 
-                n=len(data[self.model.User]), reduction="mean", 
+                n=len(data[self.User]), reduction="mean", 
                 mode='train', pool=['LOSS']
             )
 
 
 def main():
 
+    dataset: freerec.data.datasets.RecDataSet
     try:
         dataset = getattr(freerec.data.datasets, cfg.dataset)(root=cfg.root)
     except AttributeError:
@@ -252,44 +253,13 @@ def main():
     validpipe = model.sure_validpipe(cfg.maxlen, ranking=cfg.ranking)
     testpipe = model.sure_testpipe(cfg.maxlen, ranking=cfg.ranking)
 
-    if cfg.optimizer.lower() == 'sgd':
-        optimizer = torch.optim.SGD(
-            model.parameters(), lr=cfg.lr, 
-            momentum=cfg.momentum,
-            nesterov=cfg.nesterov,
-            weight_decay=cfg.weight_decay
-        )
-    elif cfg.optimizer.lower() == 'adam':
-        optimizer = torch.optim.Adam(
-            model.parameters(), lr=cfg.lr,
-            betas=(cfg.beta1, cfg.beta2),
-            weight_decay=cfg.weight_decay
-        )
-    elif cfg.optimizer.lower() == 'adamw':
-        optimizer = torch.optim.AdamW(
-            model.parameters(), lr=cfg.lr,
-            betas=(cfg.beta1, cfg.beta2),
-            weight_decay=cfg.weight_decay
-        )
-
     coach = CoachForSASRec(
         dataset=dataset,
         trainpipe=trainpipe,
         validpipe=validpipe,
         testpipe=testpipe,
         model=model,
-        optimizer=optimizer,
-        lr_scheduler=None,
-        device=cfg.device
-    )
-    coach.compile(
-        cfg, 
-        monitors=[
-            'loss', 
-            'hitrate@1', 'hitrate@5', 'hitrate@10',
-            'ndcg@5', 'ndcg@10'
-        ],
-        which4best='ndcg@10'
+        cfg=cfg
     )
     coach.fit()
 
