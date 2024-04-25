@@ -1,5 +1,5 @@
 root: ../../data
-dataset: AmazonBeauty_550_Chron
+dataset: Amazon2014Beauty_550_LOU
 
 embedding_dim: 64
 
