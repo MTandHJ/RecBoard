@@ -122,7 +122,7 @@ class NARM(freerec.models.SeqRecArch):
         ).batch_(batch_size).tensor_()
 
     def shrink_pads(self, seqs: torch.Tensor):
-        mask = seqs.not_equal(self.PADDING_VALUE)
+        mask = seqs.ne(self.PADDING_VALUE)
         keeped = mask.any(dim=0, keepdim=False)
         return seqs[:, keeped], mask[:, keeped].unsqueeze(-1) # (B, S), (B, S, 1)
     

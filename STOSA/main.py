@@ -138,7 +138,7 @@ class STOSA(freerec.models.SeqRecArch):
 
     def encode(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
         seqs = data[self.ISeq]
-        attn_mask = seqs.not_equal(self.PADDING_VALUE).unsqueeze(1).unsqueeze(2) # (B, 1, 1, S)
+        attn_mask = seqs.ne(self.PADDING_VALUE).unsqueeze(1).unsqueeze(2) # (B, 1, 1, S)
         attn_mask = attn_mask.logical_and(self.attnMask)
         attn_mask = (1. -  attn_mask.float()) * (- 2 ** 32 + 1)
 
