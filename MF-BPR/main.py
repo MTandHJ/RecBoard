@@ -110,7 +110,7 @@ class MF(freerec.models.GenRecArch):
 class CoachForMFBPR(freerec.launcher.Coach):
 
     def train_per_epoch(self, epoch: int):
-        for i, data in enumerate(self.dataloader):
+        for data in self.dataloader:
             data = self.dict_to_device(data)
             loss = self.model(data)
 
@@ -122,13 +122,6 @@ class CoachForMFBPR(freerec.launcher.Coach):
                 loss.item(), 
                 n=len(data[self.User]), reduction="mean", 
                 mode='train', pool=['LOSS']
-            )
-            count = len(data[self.User])
-
-            self.monitor(
-                count,
-                n=1, reduction='mean',
-                mode='train', pool=['COUNT']
             )
 
 
@@ -154,9 +147,6 @@ def main():
         testpipe=testpipe,
         model=model,
         cfg=cfg
-    )
-    coach.register_metric(
-        'Count', lambda x: x, best_caster=max
     )
     coach.fit()
 
