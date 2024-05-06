@@ -1,5 +1,5 @@
-dataset: Amazon2014Beauty_550_LOU
 root: ../../data
+dataset: Amazon2014Beauty_550_LOU
 
 maxlen: 50
 embedding_dim: 64
