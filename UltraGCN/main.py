@@ -168,7 +168,7 @@ class UltraGCN(freerec.models.GenRecArch):
         return torch.einsum("BKD,BKD->BK", userEmbds, itemEmbds)
 
 
-class CoachForMFBPR(freerec.launcher.Coach):
+class CoachForUltraGCN(freerec.launcher.Coach):
 
     def sample_negs_from_all(self, data: Dict):
         if not self.cfg.unseen_only:
@@ -214,7 +214,7 @@ def main():
     validpipe = model.sure_validpipe(cfg.ranking)
     testpipe = model.sure_testpipe(cfg.ranking)
 
-    coach = CoachForMFBPR(
+    coach = CoachForUltraGCN(
         dataset=dataset,
         trainpipe=trainpipe,
         validpipe=validpipe,
