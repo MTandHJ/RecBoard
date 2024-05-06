@@ -129,7 +129,8 @@ class GRU4Rec(freerec.models.SeqRecArch):
 
         userEmbds = gru_out.gather(
             dim=1,
-            index=mask.sum(1, keepdim=True).add(-1).expand((-1, 1, gru_out.size(-1)))
+            index=mask.sum(1, keepdim=True).add(-1).clamp_min(0).expand((-1, 1, gru_out.size(-1)))
+            # clamp_min(0) used for empty sequence
         ).squeeze(1) # (B, D)
 
         return userEmbds, self.Item.embeddings.weight[self.NUM_PADS:]
