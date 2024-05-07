@@ -135,7 +135,7 @@ class NARM(freerec.models.SeqRecArch):
 
         c_global = ht = gru_out.gather(
             dim=1,
-            index=mask.sum(1, keepdim=True).add(-1).expand((-1, 1, gru_out.size(-1)))
+            index=mask.sum(1, keepdim=True).add(-1).clamp_min(0).expand((-1, 1, gru_out.size(-1)))
         ) # (B, 1, H)
 
         q1 = self.a_1(gru_out) # (B, S, H)
