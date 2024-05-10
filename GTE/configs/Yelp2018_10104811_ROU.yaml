@@ -1,0 +1,8 @@
+root: ../../data
+dataset: Yelp2018_10104811_ROU
+device: cpu
+
+num_layers: 3
+
+monitors: [LOSS, Recall@1, Recall@10, Recall@20, NDCG@10, NDCG@20]
+which4best: NDCG@20
