@@ -10,4 +10,4 @@
     </p>
 </h4>
 
-This repository collects some classical recommendation methods, and I hope you will find it helpful.
+This repository collects some classic recommendation methods, and I hope you will find it helpful.
