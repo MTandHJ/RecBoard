@@ -1,0 +1,22 @@
+root: ../../data
+dataset: Amazon2014Sports_550_MMRec
+
+embedding_dim: 64
+epochs: 500
+batch_size: 2048
+optimizer: adam
+lr: 1.e-3
+weight_decay: 1.e-6
+
+num_ui_layers: 2
+num_ii_layers: 1
+
+weight4mAdj: 0.1
+weight4modality: 1.e-3
+sampling_ratio: 0.2
+
+vfile: visual_modality.pkl
+tfile: textual_modality.pkl
+
+monitors: [LOSS, Recall@1, Recall@10, Recall@20, NDCG@10, NDCG@20]
+which4best: NDCG@20
