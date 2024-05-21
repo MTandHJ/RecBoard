@@ -15,6 +15,7 @@ cfg.add_argument("--hidden-size", type=int, default=128)
 cfg.add_argument("--emb-dropout-rate", type=float, default=0.2)
 cfg.add_argument("--hidden-dropout-rate", type=float, default=0.2)
 cfg.add_argument("--num-blocks", type=int, default=1, help="the number of GRU layers")
+cfg.add_argument("--loss", type=str, choices=('BPR', 'BCE', 'CE'), default='BCE')
 
 cfg.set_defaults(
     description="GRU4Rec",
@@ -63,7 +64,12 @@ class GRU4Rec(freerec.models.SeqRecArch):
         )
         self.dense = nn.Linear(hidden_size, embedding_dim)
 
-        self.criterion = freerec.criterions.BCELoss4Logits(reduction='mean')
+        if cfg.loss == 'BCE':
+            self.criterion = freerec.criterions.BCELoss4Logits(reduction='mean')
+        elif cfg.loss == 'BPR':
+            self.criterion = freerec.criterions.BPRLoss(reduction='mean')
+        elif cfg.loss == 'CE':
+            self.criterion = freerec.criterions.CrossEntropy4Logits(reduction='mean')
 
         self.reset_parameters()
 
@@ -142,11 +148,25 @@ class GRU4Rec(freerec.models.SeqRecArch):
 
         posLogits = torch.einsum("BD,BSD->BS", userEmbds, posEmbds)
         negLogits = torch.einsum("BD,BSKD->BK", userEmbds, negEmbds)
-        posLabels = torch.ones_like(posLogits)
-        negLabels = torch.zeros_like(negLogits)
+        if cfg.loss in ('BCE', 'BPR'):
+            posEmbds = itemEmbds[data[self.IPos]] # (B, 1, D)
+            negEmbds = itemEmbds[data[self.INeg]] # (B, 1, K, D)
+            posLogits = torch.einsum("BD,BSD->BS", userEmbds, posEmbds) # (B, 1)
+            negLogits = torch.einsum("BD,BSKD->BK", userEmbds, negEmbds) # (B, K)
 
-        rec_loss = self.criterion(posLogits, posLabels) + \
-            self.criterion(negLogits, negLabels)
+            if cfg.loss == 'BCE':
+                posLabels = torch.ones_like(posLogits)
+                negLabels = torch.zeros_like(negLogits)
+
+                rec_loss = self.criterion(posLogits, posLabels) + \
+                    self.criterion(negLogits, negLabels)
+            elif cfg.loss == 'BPR':
+                rec_loss = self.criterion(posLogits, negLogits)
+        elif cfg.loss == 'CE':
+            logits = torch.einsum("BD,ND->BN", userEmbds, itemEmbds) # (B, N)
+            labels = data[self.IPos].flatten() # (B, S)
+
+            rec_loss = self.criterion(logits, labels)
 
         return rec_loss
 
