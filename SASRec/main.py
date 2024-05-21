@@ -14,6 +14,7 @@ cfg.add_argument("--num-heads", type=int, default=1)
 cfg.add_argument("--num-blocks", type=int, default=2)
 cfg.add_argument("--embedding-dim", type=int, default=64)
 cfg.add_argument("--dropout-rate", type=float, default=0.2)
+cfg.add_argument("--loss", type=str, choices=('BPR', 'BCE', 'CE'), default='BCE')
 
 cfg.set_defaults(
     description="SASRec",
@@ -116,7 +117,12 @@ class SASRec(freerec.models.SeqRecArch):
             torch.ones((maxlen, maxlen), dtype=torch.bool).triu(diagonal=1)
         )
 
-        self.criterion = freerec.criterions.BCELoss4Logits(reduction='mean')
+        if cfg.loss == 'BCE':
+            self.criterion = freerec.criterions.BCELoss4Logits(reduction='mean')
+        elif cfg.loss == 'BPR':
+            self.criterion = freerec.criterions.BPRLoss(reduction='mean')
+        elif cfg.loss == 'CE':
+            self.criterion = freerec.criterions.CrossEntropy4Logits(reduction='mean')
 
         self.reset_parameters()
 
@@ -186,17 +192,28 @@ class SASRec(freerec.models.SeqRecArch):
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
         userEmbds, itemEmbds = self.encode(data)
-        posEmbds = itemEmbds[data[self.IPos]] # (B, S, D)
-        negEmbds = itemEmbds[data[self.INeg]] # (B, S, K, D)
 
-        posLogits = torch.einsum("BSD,BSD->BS", userEmbds, posEmbds)
-        negLogits = torch.einsum("BSD,BSKD->BSK", userEmbds, negEmbds)
-        posLabels = torch.ones_like(posLogits)
-        negLabels = torch.zeros_like(negLogits)
+        if cfg.loss in ('BCE', 'BPR'):
+            posEmbds = itemEmbds[data[self.IPos]] # (B, S, D)
+            negEmbds = itemEmbds[data[self.INeg]] # (B, S, K, D)
+            posLogits = torch.einsum("BSD,BSD->BS", userEmbds, posEmbds) # (B, S)
+            negLogits = torch.einsum("BSD,BSKD->BSK", userEmbds, negEmbds) # (B, S, K)
 
-        indices = data[self.ISeq] != self.PADDING_VALUE
-        rec_loss = self.criterion(posLogits[indices], posLabels[indices]) + \
-            self.criterion(negLogits[indices], negLabels[indices])
+            if cfg.loss == 'BCE':
+                posLabels = torch.ones_like(posLogits)
+                negLabels = torch.zeros_like(negLogits)
+
+                indices = data[self.ISeq] != self.PADDING_VALUE
+                rec_loss = self.criterion(posLogits[indices], posLabels[indices]) + \
+                    self.criterion(negLogits[indices], negLabels[indices])
+            elif cfg.loss == 'BPR':
+                rec_loss = self.criterion(posLogits[indices].unsqueeze(-1), negLogits[indices])
+        elif cfg.loss == 'CE':
+            logits = torch.einsum("BSD,ND->BSN", userEmbds, itemEmbds) # (B, S, N)
+            labels = data[self.IPos] # (B, S)
+
+            indices = data[self.ISeq] != self.PADDING_VALUE
+            rec_loss = self.criterion(logits[indices], labels[indices])
 
         return rec_loss
 
