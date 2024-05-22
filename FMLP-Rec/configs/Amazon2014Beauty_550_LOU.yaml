@@ -13,6 +13,7 @@ batch_size: 512
 optimizer: adam
 lr: 1.e-4
 weight_decay: 0.
+loss: BPR
 
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
 which4best: NDCG@10
