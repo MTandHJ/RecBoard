@@ -1,0 +1,18 @@
+root: ../../data
+dataset: Yelp2019_550_S3Rec
+
+maxlen: 50
+epochs: 300
+hidden_size: 64
+embedding_dim: 64
+batch_size: 512
+lr: 1.e-3
+weight_decay: 0.
+
+emb_dropout_rate: 0.2
+hidden_dropout_rate: 0.
+ct_dropout_rate: 0.1
+num_blocks: 1
+
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+which4best: NDCG@10
