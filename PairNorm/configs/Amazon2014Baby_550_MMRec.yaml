@@ -4,9 +4,9 @@ dataset: Amazon2014Baby_550_MMRec
 embedding_dim: 64
 num_layers: 3
 norm_mode: PN
-norm_scale: 10
+norm_scale: 1
 
-epochs: 1000
+epochs: 500
 batch_size: 2048
 optimizer: adam
 lr: 1.e-3
