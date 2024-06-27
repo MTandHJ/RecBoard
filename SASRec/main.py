@@ -192,6 +192,7 @@ class SASRec(freerec.models.SeqRecArch):
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
         userEmbds, itemEmbds = self.encode(data)
+        indices = data[self.ISeq] != self.PADDING_VALUE
 
         if cfg.loss in ('BCE', 'BPR'):
             posEmbds = itemEmbds[data[self.IPos]] # (B, S, D)
@@ -202,8 +203,6 @@ class SASRec(freerec.models.SeqRecArch):
             if cfg.loss == 'BCE':
                 posLabels = torch.ones_like(posLogits)
                 negLabels = torch.zeros_like(negLogits)
-
-                indices = data[self.ISeq] != self.PADDING_VALUE
                 rec_loss = self.criterion(posLogits[indices], posLabels[indices]) + \
                     self.criterion(negLogits[indices], negLabels[indices])
             elif cfg.loss == 'BPR':
@@ -211,8 +210,6 @@ class SASRec(freerec.models.SeqRecArch):
         elif cfg.loss == 'CE':
             logits = torch.einsum("BSD,ND->BSN", userEmbds, itemEmbds) # (B, S, N)
             labels = data[self.IPos] # (B, S)
-
-            indices = data[self.ISeq] != self.PADDING_VALUE
             rec_loss = self.criterion(logits[indices], labels[indices])
 
         return rec_loss
