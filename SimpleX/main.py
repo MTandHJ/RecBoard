@@ -207,8 +207,8 @@ class CoachForSimpleX(freerec.launcher.Coach):
             loss = self.model(data)
 
             self.optimizer.zero_grad()
-            nn.utils.clip_grad_norm_(self.model.parameters(), 10)
             loss.backward()
+            nn.utils.clip_grad_norm_(self.model.parameters(), 10)
             self.optimizer.step()
             
             self.monitor(
