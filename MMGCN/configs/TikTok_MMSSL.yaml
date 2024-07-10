@@ -1,0 +1,21 @@
+root: ../../data
+dataset: Tiktok_MMSSL
+
+embedding_dim: 64
+epochs: 50
+batch_size: 1024
+optimizer: adam
+lr: 5.e-4
+weight_decay: 1.e-6
+
+num_layers: 2
+fusion_mode: add
+
+vfile: visual_modality.pkl
+tfile: textual_modality.pkl
+afile: acoustic_modality.pkl
+
+eval_freq: 1
+
+monitors: [LOSS, Recall@1, Recall@10, Recall@20, NDCG@10, NDCG@20]
+which4best: NDCG@20
