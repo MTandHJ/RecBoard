@@ -1,18 +1,18 @@
 root: ../../data
-dataset: Yelp2019_550_S3Rec
+dataset: Amazon2014Beauty_550_LOU
 
 maxlen: 50
-num_heads: 4
+num_heads: 1
 num_blocks: 2
 embedding_dim: 64
-dropout_rate: 0.3
-mask_ratio: 0.5
+dropout_rate: 0.5
 
-epochs: 500
-batch_size: 256
+epochs: 300
+batch_size: 512
 optimizer: adam
 lr: 1.e-3
-weight_decay: 1.e-6
+weight_decay: 0.
+loss: BCE
 
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
 which4best: NDCG@10

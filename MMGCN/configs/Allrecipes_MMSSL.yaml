@@ -1,22 +1,21 @@
 root: ../../data
-dataset: Amazon2014Baby_550_MMRec
+dataset: Allrecipes_MMSSL
 
 embedding_dim: 64
-num_layers: 1
-
-epochs: 500
-batch_size: 2048
+epochs: 50
+batch_size: 1024
 optimizer: adam
-lr: 1.e-3
+lr: 5.e-4
 weight_decay: 1.e-4
 
-dropout_rate: 0.5
-second_l: 2.
-reg_weight: 1.e-1
+num_layers: 1
+fusion_mode: add
 
 vfile: visual_modality.pkl
 tfile: textual_modality.pkl
 afile: Null
+
+eval_freq: 1
 
 monitors: [LOSS, Recall@1, Recall@10, Recall@20, NDCG@10, NDCG@20]
 which4best: NDCG@20

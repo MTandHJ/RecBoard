@@ -1,18 +1,19 @@
 root: ../../data
-dataset: Amazon2014Beauty_550_LOU
+dataset: Amazon2014Toys_550_LOU
 
 maxlen: 50
-num_heads: 4
-num_blocks: 2
 embedding_dim: 64
-dropout_rate: 0.2
-mask_ratio: 0.2
+num_blocks: 4
+num_heads: 2
+hidden_act: gelu
+hidden_dropout_rate: 0.4
 
-epochs: 500
+epochs: 300
 batch_size: 512
 optimizer: adam
-lr: 5.e-3
-weight_decay: 1.e-4
+lr: 1.e-4
+weight_decay: 1.e-8
+loss: BPR
 
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
 which4best: NDCG@10

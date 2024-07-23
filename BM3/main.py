@@ -14,6 +14,15 @@ cfg = freerec.parser.Parser()
 cfg.add_argument("--embedding-dim", type=int, default=64)
 cfg.add_argument("--num-layers", type=int, default=3)
 
+
+cfg.add_argument("--dropout-rate", type=float, default=0.5)
+cfg.add_argument("--second-l", type=float, default=2.)
+cfg.add_argument("--reg-weight", type=float, default=1.e-1)
+
+cfg.add_argument("--afile", type=str, default=None, help="the file of acoustic modality features")
+cfg.add_argument("--vfile", type=str, default="visual_modality.pkl", help="the file of visual modality features")
+cfg.add_argument("--tfile", type=str, default="textual_modality.pkl", help="the file of textual modality features")
+
 cfg.set_defaults(
     description="BM3",
     root="../../data",
@@ -70,7 +79,7 @@ class BM3(freerec.models.GenRecArch):
         they are stored as nn.Embedding and are trainable in default.
         I tried a frozen variant on Baby and found this operation makes no difference.
         """
-        from freeplot.utils import import_pickle
+        from freerec.utils import import_pickle
         if cfg.vfile:
             vFeats = import_pickle(
                 os.path.join(path, cfg.vfile)
@@ -127,16 +136,16 @@ class BM3(freerec.models.GenRecArch):
             u_target, i_target = u_online_ori.clone(), i_online_ori.clone()
             u_target.detach()
             i_target.detach()
-            u_target = F.dropout(u_target, cfg.dropout)
-            i_target = F.dropout(i_target, cfg.dropout)
+            u_target = F.dropout(u_target, cfg.dropout_rate)
+            i_target = F.dropout(i_target, cfg.dropout_rate)
 
             if cfg.tfile:
                 t_feat_target = t_feat_online.clone()
-                t_feat_target = F.dropout(t_feat_target, cfg.dropout)
+                t_feat_target = F.dropout(t_feat_target, cfg.dropout_rate)
 
             if cfg.vfile:
                 v_feat_target = v_feat_online.clone()
-                v_feat_target = F.dropout(v_feat_target, cfg.dropout)
+                v_feat_target = F.dropout(v_feat_target, cfg.dropout_rate)
 
         u_online, i_online = self.predictor(u_online_ori), self.predictor(i_online_ori)
 

@@ -1,0 +1,18 @@
+root: ../../data
+dataset: Amazon2014Toys_550_LOU
+
+maxlen: 50
+embedding_dim: 64
+hidden_size: 128
+emb_dropout_rate: 0.1
+hidden_dropout_rate: 0.
+num_blocks: 1
+
+epochs: 300
+batch_size: 512
+lr: 1.e-3
+weight_decay: 1.e-8
+loss: BCE
+
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+which4best: NDCG@10
