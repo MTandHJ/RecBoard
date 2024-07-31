@@ -69,7 +69,7 @@ class IISide(nn.Module):
         they are stored as nn.Embedding and are trainable in default.
         I tried a frozen variant on Baby and found this operation makes no difference.
         """
-        from freeplot.utils import import_pickle
+        from freerec.utils import import_pickle
         if cfg.vfile:
             vFeats = import_pickle(
                 os.path.join(path, cfg.vfile)

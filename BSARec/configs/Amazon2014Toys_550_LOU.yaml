@@ -1,0 +1,23 @@
+root: ../../data
+dataset: Amazon2014Toys_550_LOU
+
+maxlen: 50
+embedding_dim: 64
+num_blocks: 2
+num_heads: 1
+hidden_act: gelu
+hidden_dropout_rate: 0.5
+atten_dropout_rate: 0.8
+
+epochs: 200
+batch_size: 256
+optimizer: adam
+lr: 1.e-4
+weight_decay: 1.e-4
+loss: CE
+
+alpha: 0.7
+c: 5
+
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+which4best: NDCG@10
