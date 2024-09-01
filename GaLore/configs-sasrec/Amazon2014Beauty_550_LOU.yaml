@@ -8,15 +8,15 @@ embedding_dim: 64
 hidden_dropout_rate: 0.4
 attn_dropout_rate: 0.1
 
-epochs: 300
+epochs: 500
 batch_size: 512
 optimizer: GaLoreAdamW
 lr: 1.e-3
-weight_decay: 5.e-4
+weight_decay: 0.1
 loss: BCE
 
 rank: 16
-update_proj_gap: 50
+update_proj_gap: 20
 galore_scale: 1.
 proj_type: std
 
