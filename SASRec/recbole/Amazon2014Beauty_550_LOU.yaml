@@ -5,14 +5,14 @@ maxlen: 50
 num_heads: 1
 num_blocks: 2
 embedding_dim: 64
-hidden_dropout_rate: 0.4
-attn_dropout_rate: 0.1
+hidden_dropout_rate: 0.2
+attn_dropout_rate: 0.2
 
-epochs: 300
+epochs: 500
 batch_size: 512
 optimizer: AdamW
 lr: 1.e-3
-weight_decay: 5.e-4
+weight_decay: 0.1
 loss: BCE
 
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
