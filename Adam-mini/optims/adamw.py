@@ -87,7 +87,7 @@ class AdamWMini(Optimizer):
                     state['exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                     if flag == 'block-wise':
                         state['exp_avg_sq'] = torch.zeros((1,), dtype=p.dtype, layout=p.layout, device=p.device)
-                    if flag == 'block-wise':
+                    elif flag == 'head-wise':
                         state['exp_avg_sq'] = torch.zeros((num_heads, 1), dtype=p.dtype, layout=p.layout, device=p.device)
                     else:
                         state['exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
@@ -230,7 +230,8 @@ def head_update(
         bias_correction2_sqrt = math.sqrt(bias_correction2)
         denom = (exp_avg_sq.sqrt().view(num_heads, -1) / bias_correction2_sqrt).add_(eps)
 
-        param.addcdiv_(exp_avg, denom.view(exp_avg.size()), value=-step_size)
+        delta = step_size * exp_avg.view(num_heads, -1).div(denom).view_as(param)
+        param -= delta
 
 def block_update(
     params: List[Tensor],

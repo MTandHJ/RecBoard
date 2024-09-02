@@ -20,13 +20,6 @@ cfg.add_argument("--hidden-dropout-rate", type=float, default=0.2)
 cfg.add_argument("--attn-dropout-rate", type=float, default=0.2)
 cfg.add_argument("--loss", type=str, choices=('BPR', 'BCE', 'CE'), default='BCE')
 
-# for Adam-Mini
-cfg.add_argument("--rank", type=int, default=32, help="the rank of projected gradient")
-cfg.add_argument("--update-proj-gap", type=int, default=50, help="the updating steps")
-cfg.add_argument("--galore-scale", type=float, default=1.)
-cfg.add_argument("--proj-type", type=str, default='std', choices=('std', 'reverse_std', 'left', 'right', 'full'))
-
-
 cfg.set_defaults(
     description="SASRec",
     root="../../data",
@@ -39,12 +32,6 @@ cfg.set_defaults(
     seed=1,
 )
 cfg.compile()
-
-
-assert cfg.optimizer.lower() == 'galoreadamw', "Only GaLoreAdamW supported !"
-
-
-GALORE_MODULES = (nn.Linear,)
 
 
 class SASRec(freerec.models.SeqRecArch):
@@ -122,17 +109,27 @@ class SASRec(freerec.models.SeqRecArch):
                 nn.init.constant_(m.bias, 0.)
     
     def marked_params(self):
-        galore_params = []
+        block_params = []
+        head_params = []
         for module_name, module in self.named_modules():
-            if not isinstance(module, GALORE_MODULES):
+            if not isinstance(module, nn.Linear):
                 continue
-            freerec.utils.infoLogger(f">>> [GaLore] enable GaLore for weights in module: {module_name}")
-            galore_params.append(module.weight)
+            if 'query' in module_name or 'key' in module_name:
+                freerec.utils.infoLogger(f">>> [Mini] enable Head-wise update for weights in module: {module_name}")
+                head_params.append(module.weight)
+            elif 'value' in module_name:
+                continue
+            else:
+                freerec.utils.infoLogger(f">>> [Mini] enable Block-wise update for weights in module: {module_name}")
+                block_params.append(module.weight)
 
-        id_galore_params = [id(p) for p in galore_params]
-        regular_params = [p for p in self.parameters() if id(p) not in id_galore_params]
-        param_groups = [{'params': regular_params}, 
-                        {'params': galore_params, 'rank': cfg.rank, 'update_proj_gap': cfg.update_proj_gap, 'scale': cfg.galore_scale, 'proj_type': cfg.proj_type}]
+        recorded = [id(p) for p in block_params] + [id(p) for p in head_params]
+        regular_params = [p for p in self.parameters() if id(p) not in recorded]
+        param_groups = [
+            {'params': regular_params, 'flag': 'element-wise'},
+            {'params': head_params, 'flag': 'head-wise', 'num_heads': cfg.num_heads},
+            {'params': block_params, 'flag': 'block-wise'},
+        ]
         return param_groups
 
     def sure_trainpipe(self, maxlen: int, batch_size: int):
@@ -251,6 +248,12 @@ class CoachForSASRec(freerec.launcher.Coach):
                 mode='train', pool=['LOSS']
             )
 
+            self.monitor(
+                torch.cuda.memory_allocated() / (1024 * 1024),
+                n=1, reduction="sum",
+                mode='train', pool=['MEMORY']
+            )
+
 
 def main():
 
@@ -274,6 +277,10 @@ def main():
         testpipe=testpipe,
         model=model,
         cfg=cfg
+    )
+    coach.register_metric(
+        "Memory", lambda x: x, fmt='.2f',
+        best_caster=max
     )
     coach.fit()
 
