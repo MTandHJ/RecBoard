@@ -190,9 +190,9 @@ class SASRec(freerec.models.SeqRecArch):
 
         if cfg.loss in ('BCE', 'BPR'):
             posEmbds = itemEmbds[data[self.IPos]] # (B, S, D)
-            negEmbds = itemEmbds[data[self.INeg]] # (B, S, K, D)
+            negEmbds = itemEmbds[data[self.INeg]] # (B, S, D)
             posLogits = torch.einsum("BSD,BSD->BS", userEmbds, posEmbds) # (B, S)
-            negLogits = torch.einsum("BSD,BSKD->BSK", userEmbds, negEmbds) # (B, S, K)
+            negLogits = torch.einsum("BSD,BSD->BS", userEmbds, negEmbds) # (B, S)
 
             if cfg.loss == 'BCE':
                 posLabels = torch.ones_like(posLogits)
@@ -200,7 +200,7 @@ class SASRec(freerec.models.SeqRecArch):
                 rec_loss = self.criterion(posLogits[indices], posLabels[indices]) + \
                     self.criterion(negLogits[indices], negLabels[indices])
             elif cfg.loss == 'BPR':
-                rec_loss = self.criterion(posLogits[indices].unsqueeze(-1), negLogits[indices])
+                rec_loss = self.criterion(posLogits[indices], negLogits[indices])
         elif cfg.loss == 'CE':
             logits = torch.einsum("BSD,ND->BSN", userEmbds, itemEmbds) # (B, S, N)
             labels = data[self.IPos] # (B, S)

@@ -163,8 +163,8 @@ class STOSA(freerec.models.SeqRecArch):
 
         mean_positives = mean_items[data[self.IPos]] # (B, S, D)
         cov_positives = F.elu(cov_items[data[self.IPos]]) + 1 # (B, S, D)
-        mean_negatives = mean_items[data[self.INeg].squeeze(-1)] # (B, S, D)
-        cov_negatives = F.elu(cov_items[data[self.INeg].squeeze(-1)]) + 1 # (B, S, D)
+        mean_negatives = mean_items[data[self.INeg]] # (B, S, D)
+        cov_negatives = F.elu(cov_items[data[self.INeg]]) + 1 # (B, S, D)
 
         if self.distance_metric == "wasserstein": 
             dist_func = wasserstein_distance

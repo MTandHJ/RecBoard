@@ -148,15 +148,13 @@ class BSARec(freerec.models.SeqRecArch):
     def fit(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
         userEmbds, itemEmbds = self.encode(data)
         posEmbds = itemEmbds[data[self.IPos]] # (B, 1, D)
-        negEmbds = itemEmbds[data[self.INeg]] # (B, 1, K, D)
+        negEmbds = itemEmbds[data[self.INeg]] # (B, 1, D)
 
-        posLogits = torch.einsum("BD,BSD->BS", userEmbds, posEmbds)
-        negLogits = torch.einsum("BD,BSKD->BK", userEmbds, negEmbds)
         if cfg.loss in ('BCE', 'BPR'):
             posEmbds = itemEmbds[data[self.IPos]] # (B, 1, D)
-            negEmbds = itemEmbds[data[self.INeg]] # (B, 1, K, D)
+            negEmbds = itemEmbds[data[self.INeg]] # (B, 1, D)
             posLogits = torch.einsum("BD,BSD->BS", userEmbds, posEmbds) # (B, 1)
-            negLogits = torch.einsum("BD,BSKD->BK", userEmbds, negEmbds) # (B, K)
+            negLogits = torch.einsum("BD,BSD->BS", userEmbds, negEmbds) # (B, 1)
 
             if cfg.loss == 'BCE':
                 posLabels = torch.ones_like(posLogits)

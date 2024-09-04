@@ -151,10 +151,10 @@ class NARM(freerec.models.SeqRecArch):
     def fit(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
         userEmbds, itemEmbds = self.encode(data)
         posEmbds = itemEmbds[data[self.IPos]] # (B, 1, D)
-        negEmbds = itemEmbds[data[self.INeg]] # (B, 1, K, D)
+        negEmbds = itemEmbds[data[self.INeg]] # (B, 1, D)
 
         posLogits = torch.einsum("BD,BSD->BS", userEmbds, posEmbds)
-        negLogits = torch.einsum("BD,BSKD->BSK", userEmbds, negEmbds)
+        negLogits = torch.einsum("BD,BSD->BS", userEmbds, negEmbds)
         posLabels = torch.ones_like(posLogits)
         negLabels = torch.zeros_like(negLogits)
 
