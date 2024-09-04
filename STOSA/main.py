@@ -160,33 +160,34 @@ class STOSA(freerec.models.SeqRecArch):
 
     def fit(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
         mean_users, cov_users, mean_items, cov_items = self.encode(data)
+        indices = data[self.ISeq] != self.PADDING_VALUE
+        mean_users = mean_users[indices] # (M, D)
+        cov_users = cov_users[indices] # (M, D)
 
-        mean_positives = mean_items[data[self.IPos]] # (B, S, D)
-        cov_positives = F.elu(cov_items[data[self.IPos]]) + 1 # (B, S, D)
-        mean_negatives = mean_items[data[self.INeg]] # (B, S, D)
-        cov_negatives = F.elu(cov_items[data[self.INeg]]) + 1 # (B, S, D)
+        mean_positives = mean_items[data[self.IPos][indices]] # (M, D)
+        cov_positives = F.elu(cov_items[data[self.IPos][indices]]) + 1 # (M, D)
+        mean_negatives = mean_items[data[self.INeg][indices]] # (M, D)
+        cov_negatives = F.elu(cov_items[data[self.INeg][indices]]) + 1 # (M, D)
 
         if self.distance_metric == "wasserstein": 
             dist_func = wasserstein_distance
         elif self.distance_metric == "kl":
             dist_func = kl_distance
 
-        indices = data[self.ISeq] != self.PADDING_VALUE
-
         posLogits = dist_func(
             mean_users, cov_users,
             mean_positives, cov_positives
-        ).neg()[indices]
+        ).neg()
 
         negLogits = dist_func(
             mean_users, cov_users,
             mean_negatives, cov_negatives
-        ).neg()[indices]
+        ).neg()
 
         pvnLogits = dist_func(
             mean_positives, cov_positives,
             mean_negatives, cov_negatives
-        ).neg()[indices]
+        ).neg()
 
         rec_loss = self.criterion(posLogits, negLogits)
         pvn_loss = self.pvn_loss(posLogits, pvnLogits)

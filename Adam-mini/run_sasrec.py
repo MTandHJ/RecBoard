@@ -187,24 +187,25 @@ class SASRec(freerec.models.SeqRecArch):
     ) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
         userEmbds, itemEmbds = self.encode(data)
         indices = data[self.ISeq] != self.PADDING_VALUE
+        userEmbds = userEmbds[indices] # (M, D)
 
         if cfg.loss in ('BCE', 'BPR'):
-            posEmbds = itemEmbds[data[self.IPos]] # (B, S, D)
-            negEmbds = itemEmbds[data[self.INeg]] # (B, S, D)
-            posLogits = torch.einsum("BSD,BSD->BS", userEmbds, posEmbds) # (B, S)
-            negLogits = torch.einsum("BSD,BSD->BS", userEmbds, negEmbds) # (B, S)
+            posEmbds = itemEmbds[data[self.IPos][indices]] # (M, D)
+            negEmbds = itemEmbds[data[self.INeg][indices]] # (M, D)
+            posLogits = torch.einsum("MD,MD->M", userEmbds, posEmbds) # (M,)
+            negLogits = torch.einsum("MD,MD->M", userEmbds, negEmbds) # (M,)
 
             if cfg.loss == 'BCE':
                 posLabels = torch.ones_like(posLogits)
                 negLabels = torch.zeros_like(negLogits)
-                rec_loss = self.criterion(posLogits[indices], posLabels[indices]) + \
-                    self.criterion(negLogits[indices], negLabels[indices])
+                rec_loss = self.criterion(posLogits, posLabels) + \
+                    self.criterion(negLogits, negLabels)
             elif cfg.loss == 'BPR':
-                rec_loss = self.criterion(posLogits[indices], negLogits[indices])
+                rec_loss = self.criterion(posLogits, negLogits)
         elif cfg.loss == 'CE':
-            logits = torch.einsum("BSD,ND->BSN", userEmbds, itemEmbds) # (B, S, N)
-            labels = data[self.IPos] # (B, S)
-            rec_loss = self.criterion(logits[indices], labels[indices])
+            logits = torch.einsum("MD,ND->MN", userEmbds, itemEmbds) # (M, N)
+            labels = data[self.IPos][indices] # (M,)
+            rec_loss = self.criterion(logits, labels)
 
         return rec_loss
 
