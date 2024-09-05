@@ -117,8 +117,6 @@ class SASRec(freerec.models.SeqRecArch):
             if 'query' in module_name or 'key' in module_name:
                 freerec.utils.infoLogger(f">>> [Mini] enable Head-wise update for weights in module: {module_name}")
                 head_params.append(module.weight)
-            elif 'value' in module_name:
-                continue
             else:
                 freerec.utils.infoLogger(f">>> [Mini] enable Block-wise update for weights in module: {module_name}")
                 block_params.append(module.weight)
