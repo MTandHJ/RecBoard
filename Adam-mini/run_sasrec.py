@@ -237,6 +237,12 @@ class CoachForSASRec(freerec.launcher.Coach):
             data = self.dict_to_device(data)
             loss = self.model(data)
 
+            self.monitor(
+                torch.cuda.memory_allocated() / (1024 * 1024),
+                n=1, reduction="sum",
+                mode='train', pool=['MEMORY']
+            )
+
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -245,12 +251,6 @@ class CoachForSASRec(freerec.launcher.Coach):
                 loss.item(), 
                 n=len(data[self.User]), reduction="mean", 
                 mode='train', pool=['LOSS']
-            )
-
-            self.monitor(
-                torch.cuda.memory_allocated() / (1024 * 1024),
-                n=1, reduction="sum",
-                mode='train', pool=['MEMORY']
             )
 
 

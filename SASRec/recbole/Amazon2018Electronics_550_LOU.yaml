@@ -1,0 +1,19 @@
+root: ../../data
+dataset: Amazon2018Electronics_550_LOU
+
+maxlen: 50
+num_heads: 1
+num_blocks: 2
+embedding_dim: 64
+hidden_dropout_rate: 0.2
+attn_dropout_rate: 0.3
+
+epochs: 500
+batch_size: 2048
+optimizer: AdamW
+lr: 1.e-3
+weight_decay: 0.05
+loss: BCE
+
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+which4best: NDCG@10
