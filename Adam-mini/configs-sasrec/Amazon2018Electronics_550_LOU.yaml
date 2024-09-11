@@ -1,5 +1,5 @@
 root: ../../data
-dataset: Amazon2014Beauty_550_LOU
+dataset: Amazon2018Electronics_550_LOU
 
 maxlen: 50
 num_heads: 1
