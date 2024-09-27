@@ -1,18 +1,19 @@
 root: ../../data
-dataset: Amazon2018Electronics_550_LOU
+dataset: Amazon2014Beauty_10100_LOU
+tasktag: NEXTITEM
 
 maxlen: 50
 num_heads: 1
 num_blocks: 2
 embedding_dim: 64
 hidden_dropout_rate: 0.1
-attn_dropout_rate: 0.5
+attn_dropout_rate: 0.3
 
 epochs: 500
-batch_size: 2048
+batch_size: 512
 optimizer: AdamW
 lr: 1.e-3
-weight_decay: 0.05
+weight_decay: 0.1
 loss: BCE
 
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]

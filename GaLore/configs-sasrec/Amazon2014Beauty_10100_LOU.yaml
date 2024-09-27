@@ -1,0 +1,25 @@
+root: ../../data
+dataset: Amazon2014Beauty_10100_LOU
+tasktag: NEXTITEM
+
+maxlen: 50
+num_heads: 1
+num_blocks: 2
+embedding_dim: 64
+hidden_dropout_rate: 0.2
+attn_dropout_rate: 0.3
+
+epochs: 500
+batch_size: 512
+optimizer: GaLoreAdamW
+lr: 1.e-3
+weight_decay: 1.e-3
+loss: BCE
+
+rank: 16
+update_proj_gap: 2
+galore_scale: 1.
+proj_type: std
+
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+which4best: NDCG@10
