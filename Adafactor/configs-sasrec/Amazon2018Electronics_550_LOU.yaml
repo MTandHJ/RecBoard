@@ -5,14 +5,14 @@ maxlen: 50
 num_heads: 1
 num_blocks: 2
 embedding_dim: 64
-hidden_dropout_rate: 0.1
+hidden_dropout_rate: 0.2
 attn_dropout_rate: 0.6
 
 epochs: 500
 batch_size: 2048
 optimizer: Adafactor
-decay_rate: 0.8
-weight_decay: 1.e-4
+decay_rate: -0.8
+weight_decay: 0.1
 loss: BCE
 
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
