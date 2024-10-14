@@ -29,22 +29,21 @@ cfg.compile()
 class LightGCN(freerec.models.GenRecArch):
 
     def __init__(
-        self, dataset: freerec.data.datasets.RecDataSet,
-        embedding_dim: int = 64, num_layers: int = 3
+        self, dataset: freerec.data.datasets.RecDataSet
     ) -> None:
         super().__init__(dataset)
 
-        self.num_layers = num_layers
+        self.num_layers = cfg.num_layers
 
         self.User.add_module(
             "embeddings", nn.Embedding(
-                self.User.count, embedding_dim
+                self.User.count, cfg.embedding_dim
             )
         )
 
         self.Item.add_module(
             "embeddings", nn.Embedding(
-                self.Item.count, embedding_dim
+                self.Item.count, cfg.embedding_dim
             )
         )
 
@@ -180,10 +179,7 @@ def main():
     except AttributeError:
         dataset = freerec.data.datasets.RecDataSet(cfg.root, cfg.dataset, tasktag=cfg.tasktag)
 
-    model = LightGCN(
-        dataset,
-        embedding_dim=cfg.embedding_dim, num_layers=cfg.num_layers
-    )
+    model = LightGCN(dataset)
 
     trainpipe = model.sure_trainpipe(cfg.batch_size)
     validpipe = model.sure_validpipe(cfg.ranking)
