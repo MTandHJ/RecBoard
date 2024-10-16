@@ -6,7 +6,7 @@ This is an official implementation of [Graph-enhanced Optimizers for <u>S</u>tru
 
 ## Requirements
 
-Python >= 3.9 | [PyTorch >=2.0](https://pytorch.org/) | [TorchData >=0.6.0](https://github.com/pytorch/data) | [PyG >=2.3](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html#) | [FreeRec >= 0.8.7](https://github.com/MTandHJ/freerec)
+Python >= 3.9 | [PyTorch >=2.0](https://pytorch.org/) | [0.6.0 <= TorchData <= 0.8.0](https://github.com/pytorch/data) | [PyG >=2.3](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html#) | [FreeRec >= 0.8.7](https://github.com/MTandHJ/freerec)
 
 Refer to [here](https://github.com/MTandHJ/freerec/blob/master/dataset%20processing.md) for dataset preparation. For the [0.4.3](https://github.com/MTandHJ/SEvo/tree/0.4.3) branch, the datasets can be automatically downloaded.
 
