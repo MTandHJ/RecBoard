@@ -1,0 +1,100 @@
+dataset: Frappe_x1_BARS
+root: ../../data
+
+embedding_dim: 10
+hidden_dims: 400,400,400
+hidden_dropout_rate: 0.2
+batch_norm: True
+
+epochs: 100
+batch_size: 4096
+optimizer: adam
+lr: 1.e-3
+weight_decay: 0.
+embedding_decay: 0.05
+
+lr_scheduler:
+  min_lr: 1.e-6
+  factor: 0.1
+  threshold: 1.e-6
+
+eval_freq: 1
+early_stop_patience: 2
+monitors: [LOSS, LOGLOSS, AUC]
+which4best: AUC
+
+fields:
+  LABEL:
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: null
+
+  USER:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+
+  ITEM:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+
+  DAYTIME:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+
+  WEEKDAY:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+
+  ISWEEKEND:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+
+  HOMEWORK:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+
+  COST:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+
+  WEATHER:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+
+  COUNTRY:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+
+  CITY:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
