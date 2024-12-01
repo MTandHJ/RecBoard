@@ -173,7 +173,7 @@ class Caser(freerec.models.SeqRecArch):
         itemEmbs = self.W2(items) # (B, K, 2D)
         itemBias = self.b2(items) # (B, K, 1)
 
-        return torch.einsum("BD,BKD->BK", userEmbds, itemEmbs) + itemBias.squeeze(1)
+        return torch.einsum("BD,BKD->BK", userEmbds, itemEmbs) + itemBias.squeeze(-1)
 
 
 class CoachForCaser(freerec.launcher.Coach):
