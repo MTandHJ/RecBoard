@@ -1,0 +1,254 @@
+dataset: Criteo_x1_BARS
+root: ../../data
+
+embedding_dim: 10
+num_layers: 3
+hidden_dims: 400,400,400
+hidden_dropout_rate: 0.1
+batch_norm: False
+
+epochs: 100
+batch_size: 4096
+optimizer: Adafactor
+lr: 1.e-3
+eps: 1.e-8
+decay_rate: -0.6
+weight_decay: 0.
+embedding_decay: 1.e-5
+
+lr_scheduler:
+  min_lr: 1.e-6
+  factor: 0.1
+  threshold: 1.e-6
+
+eval_freq: 1
+early_stop_patience: 2
+monitors: [LOSS, LOGLOSS, AUC]
+which4best: AUC
+
+fields:
+  LABEL:
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: null
+  I1:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I2:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I3:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I4:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I5:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I6:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I7:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I8:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I9:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I10:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I11:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I12:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  I13:
+    tags: []
+    dtype: Float32
+    fill_null_strategy: zero
+    normalizer: null
+  C1:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C2:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C3:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C4:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C5:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C6:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C7:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C8:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C9:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C10:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C11:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C12:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C13:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C14:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C15:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C16:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C17:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C18:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C19:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C20:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C21:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C22:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C23:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C24:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C25:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
+  C26:
+    tags:
+    - EMBED
+    dtype: Int64
+    fill_null_strategy: zero
+    normalizer: reindexer
