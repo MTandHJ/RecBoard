@@ -119,14 +119,12 @@ class AlphaRec(freerec.models.GenRecArch):
         
         userFeats, itemFeats = torch.split(avgFeats, (self.User.count, self.Item.count))
 
-        return userFeats, itemFeats
+        return F.normalize(userFeats, dim=-1), F.normalize(itemFeats, dim=-1)
 
     def fit(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
         users = data[self.User]
         items = torch.cat((data[self.IPos], data[self.INeg]), dim=-1) # (B, K + 1)
         userFeats, itemFeats = self.encode()
-        userFeats = F.normalize(userFeats, dim=-1)
-        itemFeats = F.normalize(itemFeats, dim=-1)
 
         userFeats = userFeats[users] # B x 1 x D
         itemFeats = itemFeats[items] # B x (K + 1) x D
