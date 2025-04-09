@@ -98,7 +98,7 @@ class SimGCL(freerec.models.GenRecArch):
         ) # (N, D)
         avgEmbds = 0.
         for l in range(self.num_layers):
-            allEmbds = self.sAdjs[l] @ allEmbds
+            allEmbds = self.Adj @ allEmbds
             noise = F.normalize(torch.rand_like(allEmbds), dim=-1).mul(allEmbds.sign())
             allEmbds = allEmbds + cfg.eps * noise
             avgEmbds += allEmbds / self.num_layers
@@ -190,7 +190,6 @@ class CoachForSimGCL(freerec.launcher.Coach):
             )
 
     def train_per_epoch(self, epoch: int):
-        self.get_res_sys_arch().resample()
         for data in self.dataloader:
             data = self.dict_to_device(data)
             rec_loss, emb_loss, ssl_loss = self.model(data)
