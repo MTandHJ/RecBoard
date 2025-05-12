@@ -38,5 +38,5 @@ The directory structure should be organized as follows, assuming that `root` is 
 	└── ...
 ```
 
-![Note]
+>![NOTE]
 > For details on how to convert the raw data `Amazon2014Beauty.zip` into the training dataset `Amazon2014Beauty_550_LOU`, please refer to [Dataset Processing](https://github.com/MTandHJ/freerec/blob/master/dataset%20processing.md).
