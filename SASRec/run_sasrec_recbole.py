@@ -25,7 +25,7 @@ cfg.set_defaults(
     dataset='Amazon2014Beauty_550_LOU',
     epochs=200,
     batch_size=256,
-    optimizer='GaLoreAdamW',
+    optimizer='AdamW',
     lr=1e-3,
     weight_decay=0.,
     seed=1,
