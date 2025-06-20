@@ -1,0 +1,25 @@
+root: ../../data
+dataset: Amazon2014Beauty_550_LOU
+
+maxlen: 50
+num_heads: 2
+num_blocks: 4
+embedding_dim: 64
+linear_hidden_dim: 4
+attention_dim: 4
+emb_dropout_rate: 0.4
+hidden_dropout_rate: 0.2
+
+epochs: 300
+batch_size: 256
+optimizer: AdamW
+lr: 1.e-3
+weight_decay: 1.e-3
+beta1: 0.9
+beta2: 0.98
+num_negs: 512
+temperature: 0.1
+num_buckets: 128
+
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+which4best: NDCG@10
