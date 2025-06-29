@@ -179,7 +179,7 @@ class SASRec(freerec.models.SeqRecArch):
         seqs = self.Item.embeddings(seqs) # (B, S) -> (B, S, D)
         seqs *= self.embedding_dim ** 0.5
         seqs = self.embdDropout(self.mark_position(seqs))
-        seqs.masked_fill(padding_mask, 0.)
+        seqs = seqs.masked_fill(padding_mask, 0.)
 
         for l in range(self.num_blocks):
             seqs = self.after_one_block(seqs, padding_mask, l)
