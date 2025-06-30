@@ -1,6 +1,6 @@
 
 
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, List
 
 import torch
 import torch.nn as nn
@@ -17,9 +17,7 @@ cfg.add_argument("--num-heads", type=int, default=1)
 cfg.add_argument("--num-blocks", type=int, default=2)
 cfg.add_argument("--embedding-dim", type=int, default=64)
 cfg.add_argument("--dropout-rate", type=float, default=0.2)
-cfg.add_argument("--loss", type=str, choices=('BPR', 'BCE', 'CE'), default='BCE')
-cfg.add_argument("--sem-id-ckpt", type=str, default=None)
-
+cfg.add_argument("--sem-id-ckpt", type=str, default=None, help="checkpoint file of sem_ids")
 
 cfg.set_defaults(
     description="SASRec",
@@ -27,7 +25,7 @@ cfg.set_defaults(
     dataset='Amazon2014Beauty_550_LOU',
     epochs=200,
     batch_size=256,
-    optimizer='adam',
+    optimizer='AdamW',
     lr=1e-3,
     weight_decay=0.,
     seed=1,
@@ -64,6 +62,7 @@ class SASRec(freerec.models.SeqRecArch):
         super().__init__(dataset)
 
         self.num_blocks = cfg.num_blocks
+        self.embedding_dim = cfg.embedding_dim
 
         self.Item.add_module(
             'embeddings', SemIDEmbedding(
@@ -71,9 +70,10 @@ class SASRec(freerec.models.SeqRecArch):
                 embedding_dim=cfg.embedding_dim, padding=True
             )
         )
-        self.num_buckets = self.Item.embeddings.num_buckets
+        self.num_levels: int = self.Item.embeddings.num_levels
+        self.num_codes: List[int] = self.Item.embeddings.num_codes
 
-        self.maxlen = (cfg.maxlen + 2) * self.num_buckets # Each Item occupies #Buckets tokens
+        self.maxlen = (cfg.maxlen + 2) * self.num_levels # Each Item occupies #levels tokens
         self.Position = nn.Embedding(self.maxlen, cfg.embedding_dim)
         self.embdDropout = nn.Dropout(p=cfg.dropout_rate)
         self.register_buffer(
@@ -113,16 +113,7 @@ class SASRec(freerec.models.SeqRecArch):
                 cfg.embedding_dim, cfg.dropout_rate
             ))
 
-        self.register_buffer(
-            'attnMask',
-        )
-
-        if cfg.loss == 'BCE':
-            self.criterion = freerec.criterions.BCELoss4Logits(reduction='mean')
-        elif cfg.loss == 'BPR':
-            self.criterion = freerec.criterions.BPRLoss(reduction='mean')
-        elif cfg.loss == 'CE':
-            self.criterion = freerec.criterions.CrossEntropy4Logits(reduction='mean')
+        self.criterion = freerec.criterions.CrossEntropy4Logits(reduction='mean')
 
         self.reset_parameters()
 
@@ -178,15 +169,13 @@ class SASRec(freerec.models.SeqRecArch):
         return seqs + positions[-seqs.size(1):]
 
     def encode(
-        self, data: Dict[freerec.data.fields.Field, torch.Tensor]
+        self, seqs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        seqs = data[self.ISeq]
-        seqs = self.shrink_pads(seqs)
         padding_mask = (seqs == self.PADDING_VALUE).unsqueeze(-1)
         seqs = self.Item.embeddings(seqs) # (B, S) -> (B, S, D)
         seqs *= self.embedding_dim ** 0.5
         seqs = self.embdDropout(self.mark_position(seqs))
-        seqs.masked_fill(padding_mask, 0.)
+        seqs = seqs.masked_fill(padding_mask, 0.)
 
         for l in range(self.num_blocks):
             seqs = self.after_one_block(seqs, padding_mask, l)
@@ -198,40 +187,66 @@ class SASRec(freerec.models.SeqRecArch):
     def fit(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
-        userEmbds = self.encode(data)
-        indices = data[self.ISeq] != self.PADDING_VALUE
+        seqs = data[self.ISeq]
+        seqs = self.Item.embeddings.item_ids_to_sem_ids(seqs)
+        seqs = self.shrink_pads(seqs)
+        userEmbds = self.encode(seqs)
+        indices = seqs != self.PADDING_VALUE
         userEmbds = userEmbds[indices] # (M, D)
         itemEmbds = self.Item.embeddings.weight
 
         logits = torch.einsum("MD,ND->MN", userEmbds, itemEmbds) # (M, N)
-        labels = data[self.IPos][indices] # (M,)
+        labels = self.Item.embeddings.item_ids_to_sem_ids(data[self.IPos])
+        indices = labels != self.PADDING_VALUE
+        labels = labels[indices] # (M,)
         rec_loss = self.criterion(logits, labels)
 
         return rec_loss
 
     def beam_search(
-        self, data: Dict[freerec.data.fields.Field, torch.Tensor]
-    ):
-        seqs = data[self.ISeq]
+        self, 
+        data: Dict[freerec.data.fields.Field, torch.Tensor],
+        temperature: float = 1.
+    ) -> torch.Tensor:
+        # historical sequence
+        seqs: torch.Tensor = self.Item.embeddings.item_ids_to_sem_ids(data[self.ISeq])
         itemEmbds = self.Item.embeddings.weight
 
-        B, K, N = seqs.size(0), cfg.num_beams, itemEmbds.size(-1)
+        (B, S), K = seqs.shape, cfg.num_beams
 
-        seqs = seqs.repeat_interleave((K, 1)) # (B * K, S)
+        seqs = seqs.repeat_interleave(K, dim=0) # (B * K, S)
         scores = torch.zeros((B, K), device=self.device)
-        scores[:, 1:] = -1e9
+        # mask the last K-1 starts to avoid repeated sampling at first turn
+        scores[:, 1:] = -1e9 
+
         seqs, scores = seqs.view(B * K, -1), scores.view(B * K, 1)
-        for _ in range(self.num_buckets):
+
+        start = self.NUM_PADS
+        for l in range(self.num_levels):
+            N = self.num_codes[l]
+            end = start + N
+
             userEmbds = self.encode(
-                data.update({self.ISeq: seqs})
+                seqs
             )[:, -1, :] # (B * K, D)
 
-            logits = torch.einsum("MD,ND->MN", userEmbds, itemEmbds)
-            logp = F.log_softmax(logits, dim=-1).add(scores).view(B, -1) # (B, K * N)
-            scores, indices = logp.topk(k=K, dim=-1, largest=True) # (B, K)
+            is_valid = self.Item.embeddings.check_validity(
+                torch.cat(
+                    (
+                        seqs[:, S:].repeat_interleave(N, dim=0),
+                        torch.arange(start, end, device=self.device).repeat(B * K).unsqueeze(-1)
+                    ),
+                    dim=1
+                )
+            ).view(B, K * N)
+            logits = torch.einsum("MD,ND->MN", userEmbds, itemEmbds[start:end])
+            logp = F.log_softmax(logits / temperature, dim=-1).add(scores).view(B, -1) # (B, K * N)
+            logp[~is_valid] = -1e9
+            scores, indices = logp.topk(k=K, dim=-1, largest=True, sorted=True) # (B, K)
 
             prev_beam_tokens = indices // N # (B, K)
             next_beam_tokens = indices % N # (B, K)
+            next_beam_tokens += start
             seqs = seqs[prev_beam_tokens.flatten()] # (B * K, L)
 
             seqs = torch.cat(
@@ -243,24 +258,45 @@ class SASRec(freerec.models.SeqRecArch):
             ) # (B * K, L + 1)
             scores = scores.view(B * K, 1)
 
+            start += N
+
         seqs = seqs.view(B, K, -1)
-        generated = seqs[..., -self.num_buckets:] # (B, K, num_buckets)
+        generated = seqs[..., -self.num_levels:] # (B, K, num_levels)
+        recommended = self.Item.embeddings.sem_ids_to_item_ids(generated) # (B, K)
+        return recommended
 
     def recommend_from_full(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> torch.Tensor:
-        userEmbds, itemEmbds = self.encode(data)
-        userEmbds = userEmbds[:, -1, :] # (B, D)
-        return torch.einsum("BD,ND->BN", userEmbds, itemEmbds)
+        itemIDs = self.beam_search(data)
+        B, K, N = itemIDs.size(0), itemIDs.size(1), self.Item.count + self.NUM_PADS
+
+        scores = torch.zeros((B, N), device=self.device)
+        scores = scores.scatter(
+            dim=1, index=itemIDs,
+            src=torch.arange(K + 1, 0, -1, device=self.device, dtype=torch.float).repeat((B, 1))
+        )
+        return scores[:, self.NUM_PADS:]
 
     def recommend_from_pool(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> torch.Tensor:
-        userEmbds, itemEmbds = self.encode(data)
-        userEmbds = userEmbds[:, -1, :] # (B, D)
-        itemEmbds = itemEmbds[data[self.IUnseen]] # (B, K, D)
-        return torch.einsum("BD,BKD->BK", userEmbds, itemEmbds)
 
+        itemIDs = self.beam_search(data)
+        itemEmbds = self.Item.embeddings.weight
+        B, K, N = itemIDs.size(0), itemIDs.size(1), self.Item.count + self.NUM_PADS
+
+        scores = torch.zeros((B, N), device=self.device)
+        scores = scores.scatter(
+            dim=1, index=itemIDs,
+            src=torch.arange(K + 1, 0, -1, device=self.device, dtype=torch.float).repeat((B, 1))
+        )
+        scores = scores[:, self.NUM_PADS:]
+        candidates = data[self.IUnseen]
+        scores = scores.gather(
+            dim=1, index=candidates
+        )
+        return scores
 
 class CoachForSASRec(freerec.launcher.Coach):
 
@@ -288,16 +324,12 @@ def main():
     except AttributeError:
         dataset = freerec.data.datasets.RecDataSet(cfg.root, cfg.dataset, tasktag=cfg.tasktag)
 
-    model = SASRec(
-        dataset, maxlen=cfg.maxlen, 
-        embedding_dim=cfg.embedding_dim, dropout_rate=cfg.dropout_rate,
-        num_blocks=cfg.num_blocks, num_heads=cfg.num_heads,
-    )
+    model = SASRec(dataset)
 
     # datapipe
     trainpipe = model.sure_trainpipe(cfg.maxlen, cfg.batch_size)
-    validpipe = model.sure_validpipe(cfg.maxlen, ranking=cfg.ranking)
-    testpipe = model.sure_testpipe(cfg.maxlen, ranking=cfg.ranking)
+    validpipe = model.sure_validpipe(cfg.maxlen, ranking=cfg.ranking, batch_size=64)
+    testpipe = model.sure_testpipe(cfg.maxlen, ranking=cfg.ranking, batch_size=64)
 
     coach = CoachForSASRec(
         dataset=dataset,

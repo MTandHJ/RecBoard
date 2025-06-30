@@ -1,0 +1,26 @@
+root: ../../data
+dataset: Amazon2014Beauty_1000_LOU
+tasktag: NEXTITEM
+
+maxlen: 50
+num_heads: 1
+num_blocks: 2
+embedding_dim: 64
+dropout_rate: 0.2
+
+epochs: 100
+batch_size: 512
+lr: 5.e-4
+weight_decay: 0.01
+
+num_codes: 256
+num_levels: 3
+codebook_dim: 32
+hidden_dims: 512,256,128
+# gumbel softmax
+tau4estimator: 0.05
+apply_kmeans_init: True
+apply_sim_vq: False
+commit_weight: 0.25
+
+ffile: all-minilm-l12-v2_title_categories_brand.pkl

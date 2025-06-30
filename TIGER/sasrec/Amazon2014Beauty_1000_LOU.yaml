@@ -1,0 +1,20 @@
+root: ../../data
+dataset: Amazon2014Beauty_1000_LOU
+tasktag: NEXTITEM
+
+maxlen: 50
+num_heads: 4
+num_blocks: 8
+embedding_dim: 64
+dropout_rate: 0.2
+
+epochs: 300
+batch_size: 512
+lr: 1.e-3
+weight_decay: 0.1
+
+num_beams: 10
+sem_id_ckpt: ""
+
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+which4best: NDCG@10
