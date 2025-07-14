@@ -5,9 +5,9 @@ tasktag: NEXTITEM
 maxlen: 50
 num_heads: 2
 num_blocks: 1
-embedding_dim: 64 # 300
-hidden_dropout_rate: 0.3
-attn_dropout_rate: 0.5
+embedding_dim: 64
+hidden_dropout_rate: 0.2
+attn_dropout_rate: 0.6
 adaptor_dropout_rate: 0.
 num_moe_experts: 16
 T: 0.1
@@ -23,7 +23,7 @@ weight_decay: 0.1
 # tfile: llama-2-7b-hf_title.pkl
 # tfile: llama-2-7b-hf_title_categories_brand.pkl
 # tfile: all-minilm-l12-v2_title.pkl
-# tfile: all-minilm-l12-v2_title_categories_brand.pkl
+tfile: all-minilm-l12-v2_title_categories_brand.pkl
 
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
 which4best: NDCG@10
