@@ -1,0 +1,16 @@
+root: ../../data
+dataset: Amazon2014Beauty_550_LOU
+
+maxlen: 50
+embedding_dim: 64
+hidden_size: 64
+
+epochs: 200
+batch_size: 512
+optimizer: adam
+lr: 5.e-4
+weight_decay: 1.e-8
+loss: CE
+
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+which4best: NDCG@10
