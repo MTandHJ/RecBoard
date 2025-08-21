@@ -1,0 +1,12 @@
+root: ../../data
+dataset: Amazon2014Beauty_550_LOU
+tasktag: NEXTITEM
+
+num_codewords: 256
+num_codebooks: 3
+num_iters: 100
+kmeans_init_method: random
+
+epochs: 1
+
+sem_feat_file: all-minilm-l12-v2_title_categories_brand.pkl

@@ -1,20 +1,19 @@
 root: ../../data
-dataset: Amazon2014Beauty_1000_LOU
-tasktag: NEXTITEM
+dataset: Amazon2014Beauty_550_LOU
 
 maxlen: 50
 num_heads: 4
 num_blocks: 8
-embedding_dim: 64
+embedding_dim: 128
 dropout_rate: 0.2
 
-epochs: 300
+epochs: 500
 batch_size: 512
 lr: 1.e-3
-weight_decay: 0.1
+weight_decay: 0.
 
-num_beams: 10
-sem_id_ckpt: ""
+num_beams: 32
+sem_id_ckpt: ./logs/RQ-KMeans/Amazon2014Beauty_550_LOU/0725095744/sem_id_0.pkl
 
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
 which4best: NDCG@10

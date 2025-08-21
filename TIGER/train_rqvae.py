@@ -13,22 +13,22 @@ from utils import straight_through_estimator, gumbel_softmax_estimator, rotation
 freerec.declare(version='1.0.1')
 
 cfg = freerec.parser.Parser()
-cfg.add_argument("--num-codes", type=int, default=256)
-cfg.add_argument("--num-levels", type=int, default=3)
+cfg.add_argument("--num-codewords", type=int, default=256)
+cfg.add_argument("--num-codebooks", type=int, default=3)
 cfg.add_argument("--codebook-dim", type=int, default=32)
 cfg.add_argument("--hidden-dims", type=str, default="512,256,128")
-cfg.add_argument("--gradient_estimator", type=str, default='ste')
-cfg.add_argument("--tau4estimator", type=float, default=0.05)
+cfg.add_argument("--gradient-estimator", type=str, choices=('ste', 'gumbel-softmax', 'rotation'), default='ste')
+cfg.add_argument("--gumbel-temperature", type=float, default=0.05)
 cfg.add_argument("--apply-kmeans-init", type=eval, default=True)
 cfg.add_argument("--apply-sim-vq", type=eval, default=False)
 cfg.add_argument("--commit-weight", type=float, default=0.25)
 cfg.add_argument("--dropout-rate", type=float, default=0.1)
-cfg.add_argument("--ffile", type=str, default=None)
+cfg.add_argument("--sem-feat-file", type=str, default=None)
 
 cfg.set_defaults(
     description="RQVAE",
     root="../../data",
-    dataset='Amazon2014Beauty_550_LOU',
+    dataset='Amazon2014Beauty_1000_LOU',
     epochs=200,
     batch_size=256,
     optimizer='AdamW',
@@ -44,7 +44,7 @@ class Quantizer(nn.Module):
 
     def __init__(
         self,
-        num_codes: int,
+        num_codewords: int,
         codebook_dim: int,
         apply_sim_vq: bool = False,
         apply_kmeans_init: bool = True,
@@ -54,10 +54,10 @@ class Quantizer(nn.Module):
 
         self.gradient_estimator = gradient_estimator.lower()
 
-        self.num_codes = num_codes
+        self.num_codewords = num_codewords
         self.codebook = nn.Parameter(
-            torch.randn(num_codes, codebook_dim) * 0.02, 
-            requires_grad=True
+            torch.randn(num_codewords, codebook_dim) * 0.02, 
+            requires_grad=False if apply_sim_vq else True
         )
 
         if apply_sim_vq:
@@ -67,12 +67,14 @@ class Quantizer(nn.Module):
 
         self.apply_kmeans_init = apply_kmeans_init 
 
+        self.criterion = nn.MSELoss(reduction="sum")
+
     @torch.no_grad()
     def set_kmeans_codebook(self, z: torch.Tensor):
         if self.apply_kmeans_init:
             from scipy.cluster.vq import kmeans2
             z = z.detach().cpu().numpy()
-            codebook, _ = kmeans2(z, k=self.num_codes)
+            codebook, _ = kmeans2(z, k=self.num_codewords)
             self.codebook.data.copy_(
                 torch.from_numpy(codebook).to(device=self.codebook.device, dtype=self.codebook.dtype)
             )
@@ -85,13 +87,13 @@ class Quantizer(nn.Module):
         dist = torch.cdist(z, codebook, p=2) # (B, K)
         ids = torch.argmin(dist, dim=-1) # (B,)
         q = codebook[ids] # (B, D)
-        loss = F.mse_loss(z.detach(), q) + cfg.commit_weight * F.mse_loss(q.detach(), z)
+        loss = self.criterion(z.detach(), q) + cfg.commit_weight * self.criterion(q.detach(), z)
 
         if self.training:
             if self.gradient_estimator == 'ste':
                 q = straight_through_estimator(z, q)
             elif self.gradient_estimator == 'gumbel-softmax':
-                q = gumbel_softmax_estimator(dist, codebook, temperature=cfg.tau4estimator)
+                q = gumbel_softmax_estimator(dist, codebook, temperature=cfg.gumbel_temperature)
             elif self.gradient_estimator == 'rotation':
                 q = rotation_trick_estimator(z, q)
             else:
@@ -110,11 +112,14 @@ class RQVAE(freerec.models.RecSysArch):
         self.Item.add_module(
             "embeddings",
             nn.Embedding.from_pretrained(
-                freerec.utils.import_pickle(
-                    os.path.join(
-                        self.dataset.path,
-                        cfg.ffile,
-                    )
+                F.normalize(
+                    freerec.utils.import_pickle(
+                        os.path.join(
+                            self.dataset.path,
+                            cfg.sem_feat_file,
+                        )
+                    ),
+                    dim=-1
                 ),
                 freeze=True
             )
@@ -137,13 +142,13 @@ class RQVAE(freerec.models.RecSysArch):
 
         self.quantizers = nn.ModuleList([
             Quantizer(
-                num_codes=cfg.num_codes,
+                num_codewords=cfg.num_codewords,
                 codebook_dim=cfg.codebook_dim, 
                 apply_sim_vq=cfg.apply_sim_vq,
                 apply_kmeans_init=cfg.apply_kmeans_init,
                 gradient_estimator=cfg.gradient_estimator,
             )
-            for _ in range(cfg.num_levels)
+            for _ in range(cfg.num_codebooks)
         ])
 
         self.decoder, dims = nn.Sequential(), dims[::-1]
@@ -159,7 +164,7 @@ class RQVAE(freerec.models.RecSysArch):
                     nn.Dropout(cfg.dropout_rate)
                 )
 
-        self.criterion = freerec.criterions.CrossEntropy4Logits(reduction='mean')
+        self.criterion = nn.MSELoss(reduction="sum")
 
         self.reset_parameters()
 
@@ -192,9 +197,8 @@ class RQVAE(freerec.models.RecSysArch):
         z = self.encoder(x) # (B, D)
 
         loss = 0
-        qs, residuals, ids = [], [], []
+        qs, ids = [], []
 
-        q_ = z
         for quantizer in self.quantizers:
             q_, loss_, id_ = quantizer(z)
             z = z - q_
@@ -211,7 +215,7 @@ class RQVAE(freerec.models.RecSysArch):
         q: torch.Tensor
     ):
         x_hat = self.decoder(q) # (B, D)
-        return x_hat
+        return F.normalize(x_hat, dim=-1) # normalization !!!
 
     def fit(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
@@ -222,14 +226,14 @@ class RQVAE(freerec.models.RecSysArch):
         q, auxiliary_loss, _ = self.encode(x)
         x_hat = self.decode(q)
 
-        loss = F.mse_loss(x_hat, x) + auxiliary_loss
+        loss = self.criterion(x_hat, x) + auxiliary_loss
 
         return loss
 
     @torch.no_grad()
     def generate_sem_ids(self):
         sem_ids = []
-        items = torch.arange(0, self.Item.embeddings.weight.size(0), device=self.device)
+        items = torch.arange(0, self.Item.count, device=self.device)
         for items in items.split(cfg.batch_size):
             x = self.Item.embeddings(items)
             _, _, ids = self.encode(x)
@@ -253,18 +257,24 @@ class CoachForRQVAE(freerec.launcher.Coach):
             )
 
     def set_other(self):
-        for i in range(self.cfg.num_levels):
+        self.register_metric(
+            f"RECON_LOSS", lambda x: x, best_caster=min
+        )
+        self.register_metric(
+            f"RQ_LOSS", lambda x: x, best_caster=min
+        )
+        for i in range(self.cfg.num_codebooks):
             self.register_metric(
-                f"ENT{i}", lambda x: x, best_caster=max
+                f"PPL#{i}", lambda x: x, best_caster=max
             )
             self.register_metric(
-                f"DIST{i}", lambda x: x, best_caster=max
+                f"DIST#{i}", lambda x: x, best_caster=max
             )
 
     def train_per_epoch(self, epoch: int):
         for data in self.dataloader:
             data = self.dict_to_device(data)
-            loss = self.model(data)
+            loss = self.model(data) / data[self.Size]
 
             self.optimizer.zero_grad()
             loss.backward()
@@ -278,26 +288,40 @@ class CoachForRQVAE(freerec.launcher.Coach):
 
     def evaluate(self, epoch, step = -1, mode = 'valid'):
 
-        counts = torch.zeros((cfg.num_codes, cfg.num_levels))
+        counts = torch.zeros((cfg.num_codewords, cfg.num_codebooks))
 
         for data in self.dataloader:
             data = self.dict_to_device(data)
             items = data[self.Item].flatten()
             x = self.model.Item.embeddings(items)
-            _, _, ids = self.model.encode(x)
+            q, auxiliary_loss, ids = self.model.encode(x)
+            x_hat = self.model.decode(q)
+            recon_loss = F.mse_loss(x_hat, x, reduction='sum')
 
             ids = ids.cpu()
             counts.scatter_add_(
                 0, ids, torch.ones_like(ids, dtype=torch.float)
             )
 
-        freqs = counts.div(counts.sum(dim=0, keepdim=True))
-        entropy = ((freqs + 1.e-8).log() * freqs).sum(dim=0).neg().tolist()
-
-        for i, ent in enumerate(entropy):
             self.monitor(
-                ent, n=1, mode='valid',
-                pool=[f"ENT{i}"]
+                auxiliary_loss, 
+                n=data[self.Size], reduction='sum',
+                mode='valid', pool=[f"RQ_LOSS"]
+            )
+
+            self.monitor(
+                recon_loss, 
+                n=data[self.Size], reduction='sum',
+                mode='valid', pool=[f"RECON_LOSS"]
+            )
+
+        freqs = counts.div(counts.sum(dim=0, keepdim=True))
+        perplexity = ((freqs + 1.e-8).log() * freqs).sum(dim=0).neg().exp().tolist()
+
+        for i, ppl in enumerate(perplexity):
+            self.monitor(
+                ppl, n=1, mode='valid',
+                pool=[f"PPL#{i}"]
             )
 
         for i, quantizer in enumerate(self.model.quantizers):
@@ -305,7 +329,7 @@ class CoachForRQVAE(freerec.launcher.Coach):
             dist = torch.cdist(codebook, codebook).mean().item()
             self.monitor(
                 dist, n=1, mode='valid',
-                pool=[f"DIST{i}"]
+                pool=[f"DIST#{i}"]
             )
 
 

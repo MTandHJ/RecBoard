@@ -12,12 +12,13 @@ from modules import SemIDEmbedding
 freerec.declare(version='1.0.1')
 
 cfg = freerec.parser.Parser()
-cfg.add_argument("--maxlen", type=int, default=50)
+cfg.add_argument("--maxlen", type=int, default=50, help="the maximum (item id) sequence length")
 cfg.add_argument("--num-heads", type=int, default=1)
 cfg.add_argument("--num-blocks", type=int, default=2)
 cfg.add_argument("--embedding-dim", type=int, default=64)
 cfg.add_argument("--dropout-rate", type=float, default=0.2)
-cfg.add_argument("--sem-id-ckpt", type=str, default=None, help="checkpoint file of sem_ids")
+cfg.add_argument("--sem-id-ckpt", type=str, default=None, help="checkpoint file of 'sem_ids'")
+cfg.add_argument("--num-beams", type=int, default=32)
 
 cfg.set_defaults(
     description="SASRec",
@@ -27,7 +28,7 @@ cfg.set_defaults(
     batch_size=256,
     optimizer='AdamW',
     lr=1e-3,
-    weight_decay=0.,
+    weight_decay=0.01,
     seed=1,
 )
 cfg.compile()
@@ -70,11 +71,12 @@ class SASRec(freerec.models.SeqRecArch):
                 embedding_dim=cfg.embedding_dim, padding=True
             )
         )
-        self.num_levels: int = self.Item.embeddings.num_levels
-        self.num_codes: List[int] = self.Item.embeddings.num_codes
+        self.num_codebooks: int = self.Item.embeddings.num_codebooks
+        self.num_codewords: List[int] = self.Item.embeddings.num_codewords
 
-        self.maxlen = (cfg.maxlen + 2) * self.num_levels # Each Item occupies #levels tokens
-        self.Position = nn.Embedding(self.maxlen, cfg.embedding_dim)
+        self.maxlen = (cfg.maxlen + 1) * self.num_codebooks # Every Item occupies #levels tokens
+        self.posEncoding = nn.Embedding(self.maxlen, cfg.embedding_dim)
+        self.semEncoding = nn.Embedding(self.num_codebooks, cfg.embedding_dim)
         self.embdDropout = nn.Dropout(p=cfg.dropout_rate)
         self.register_buffer(
             "positions",
@@ -113,6 +115,11 @@ class SASRec(freerec.models.SeqRecArch):
                 cfg.embedding_dim, cfg.dropout_rate
             ))
 
+        # very neccessary !!!
+        self.output_projector = nn.Linear(
+            cfg.embedding_dim, self.Item.embeddings.weight.size(0), bias=False
+        )
+
         self.criterion = freerec.criterions.CrossEntropy4Logits(reduction='mean')
 
         self.reset_parameters()
@@ -133,12 +140,10 @@ class SASRec(freerec.models.SeqRecArch):
     def sure_trainpipe(self, maxlen: int, batch_size: int):
         return self.dataset.train().shuffled_seqs_source(
            maxlen=maxlen 
-        ).seq_train_yielding_pos_(
-            start_idx_for_target=1, end_idx_for_input=-1
         ).add_(
-            offset=self.NUM_PADS, modified_fields=(self.ISeq, self.IPos)
+            offset=self.NUM_PADS, modified_fields=(self.ISeq,)
         ).lpad_(
-            maxlen, modified_fields=(self.ISeq, self.IPos),
+            maxlen, modified_fields=(self.ISeq,),
             padding_value=self.PADDING_VALUE
         ).batch_(batch_size).tensor_()
 
@@ -149,7 +154,7 @@ class SASRec(freerec.models.SeqRecArch):
         attnMask = torch.ones((L, L), dtype=torch.bool, device=self.device).triu(diagonal=1)
 
         seqs = self.attnLayers[l](
-            Q, seqs, seqs, 
+            Q, seqs, seqs,
             attn_mask=attnMask,
             need_weights=False
         )[0] + seqs
@@ -159,14 +164,17 @@ class SASRec(freerec.models.SeqRecArch):
 
         return seqs.masked_fill(padding_mask, 0.)
 
-    def shrink_pads(self, seqs: torch.Tensor):
+    def shrink_paddings(self, seqs: torch.Tensor):
         mask = seqs.ne(self.PADDING_VALUE)
         keeped = mask.any(dim=0, keepdim=False)
         return seqs[:, keeped] # (B, S)
     
     def mark_position(self, seqs: torch.Tensor):
-        positions = self.Position(self.positions) # (maxlen, D)
-        return seqs + positions[-seqs.size(1):]
+        S = seqs.size(1)
+        positions = torch.arange(S, dtype=torch.long, device=self.device)
+        return seqs \
+            + self.posEncoding(self.positions)[-S:] \
+            + self.semEncoding(positions % self.num_codebooks)
 
     def encode(
         self, seqs: torch.Tensor
@@ -189,63 +197,86 @@ class SASRec(freerec.models.SeqRecArch):
     ) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
         seqs = data[self.ISeq]
         seqs = self.Item.embeddings.item_ids_to_sem_ids(seqs)
-        seqs = self.shrink_pads(seqs)
+        seqs = self.shrink_paddings(seqs)
+        seqs, labels = seqs[:, :-1], seqs[:, 1:]
         userEmbds = self.encode(seqs)
+
         indices = seqs != self.PADDING_VALUE
         userEmbds = userEmbds[indices] # (M, D)
-        itemEmbds = self.Item.embeddings.weight
+        logits = self.output_projector(userEmbds) # (M, N)
 
-        logits = torch.einsum("MD,ND->MN", userEmbds, itemEmbds) # (M, N)
-        labels = self.Item.embeddings.item_ids_to_sem_ids(data[self.IPos])
-        indices = labels != self.PADDING_VALUE
         labels = labels[indices] # (M,)
-        rec_loss = self.criterion(logits, labels)
+        loss = self.criterion(logits, labels)
 
-        return rec_loss
+        return loss
 
     def beam_search(
         self, 
         data: Dict[freerec.data.fields.Field, torch.Tensor],
-        temperature: float = 1.
+        temperature: float = 1.,
+        remove_invalid_codes: bool = False
     ) -> torch.Tensor:
+        r"""
+        Beam search for item recommendation generation.
+
+        Parameters
+        ----------
+        data : Dict[freerec.data.fields.Field, torch.Tensor]
+            Contains the historical sequence.
+        temperature : float
+            Sampling temperature for controlling exploration. 
+            Note: Probabilistic sampling is not supported.
+        remove_invalid_codes : bool
+            - True: Exclude invalid codes at each decoding step.
+            - False: Retain invalid codes during decoding.
+
+        Returns
+        -------
+        torch.Tensor
+            Recommended candidates, returned as original item IDs (not semantic IDs).
+        """
+
         # historical sequence
         seqs: torch.Tensor = self.Item.embeddings.item_ids_to_sem_ids(data[self.ISeq])
-        itemEmbds = self.Item.embeddings.weight
+        seqs = self.shrink_paddings(seqs)
+        itemEmbds = self.output_projector.weight
 
         (B, S), K = seqs.shape, cfg.num_beams
 
         seqs = seqs.repeat_interleave(K, dim=0) # (B * K, S)
         scores = torch.zeros((B, K), device=self.device)
-        # mask the last K-1 starts to avoid repeated sampling at first turn
+        # mask the last K-1 beams to avoid repeated sampling at the first turn
         scores[:, 1:] = -1e9 
 
         seqs, scores = seqs.view(B * K, -1), scores.view(B * K, 1)
 
         start = self.NUM_PADS
-        for l in range(self.num_levels):
-            N = self.num_codes[l]
+        for l in range(self.num_codebooks):
+            N = self.num_codewords[l]
             end = start + N
 
             userEmbds = self.encode(
                 seqs
             )[:, -1, :] # (B * K, D)
 
-            is_valid = self.Item.embeddings.check_validity(
-                torch.cat(
-                    (
-                        seqs[:, S:].repeat_interleave(N, dim=0),
-                        torch.arange(start, end, device=self.device).repeat(B * K).unsqueeze(-1)
-                    ),
-                    dim=1
-                )
-            ).view(B, K * N)
             logits = torch.einsum("MD,ND->MN", userEmbds, itemEmbds[start:end])
             logp = F.log_softmax(logits / temperature, dim=-1).add(scores).view(B, -1) # (B, K * N)
-            logp[~is_valid] = -1e9
+            if remove_invalid_codes:
+                is_valid = self.Item.embeddings.check_validity(
+                    torch.cat(
+                        (
+                            seqs[:, S:].repeat_interleave(N, dim=0),
+                            torch.arange(start, end, device=self.device).repeat(B * K).unsqueeze(-1)
+                        ),
+                        dim=1
+                    )
+                ).view(B, K * N)
+                logp[~is_valid] = -1e9
             scores, indices = logp.topk(k=K, dim=-1, largest=True, sorted=True) # (B, K)
 
             prev_beam_tokens = indices // N # (B, K)
             next_beam_tokens = indices % N # (B, K)
+            prev_beam_tokens += (torch.arange(B, dtype=torch.long, device=self.device) * K).unsqueeze(-1)
             next_beam_tokens += start
             seqs = seqs[prev_beam_tokens.flatten()] # (B * K, L)
 
@@ -261,34 +292,33 @@ class SASRec(freerec.models.SeqRecArch):
             start += N
 
         seqs = seqs.view(B, K, -1)
-        generated = seqs[..., -self.num_levels:] # (B, K, num_levels)
-        recommended = self.Item.embeddings.sem_ids_to_item_ids(generated) # (B, K)
-        return recommended
+        ranked_sem_ids = seqs[..., -self.num_codebooks:] # (B, K, num_codebooks)
+        ranked_item_ids = self.Item.embeddings.sem_ids_to_item_ids(ranked_sem_ids) # (B, K)
+        num_invalid_item_ids = (ranked_item_ids == self.PADDING_VALUE).sum()
+        return ranked_item_ids, num_invalid_item_ids
 
     def recommend_from_full(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> torch.Tensor:
-        itemIDs = self.beam_search(data)
-        B, K, N = itemIDs.size(0), itemIDs.size(1), self.Item.count + self.NUM_PADS
+        ranked_item_ids, num_invalid_item_ids = self.beam_search(data)
+        B, K, N = ranked_item_ids.size(0), ranked_item_ids.size(1), self.Item.count + self.NUM_PADS
 
-        scores = torch.zeros((B, N), device=self.device)
+        scores = torch.rand((B, N), device=self.device) * 0.001
         scores = scores.scatter(
-            dim=1, index=itemIDs,
+            dim=1, index=ranked_item_ids,
             src=torch.arange(K + 1, 0, -1, device=self.device, dtype=torch.float).repeat((B, 1))
         )
-        return scores[:, self.NUM_PADS:]
+        return scores[:, self.NUM_PADS:], num_invalid_item_ids
 
     def recommend_from_pool(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> torch.Tensor:
+        ranked_item_ids, num_invalid_item_ids = self.beam_search(data)
+        B, K, N = ranked_item_ids.size(0), ranked_item_ids.size(1), self.Item.count + self.NUM_PADS
 
-        itemIDs = self.beam_search(data)
-        itemEmbds = self.Item.embeddings.weight
-        B, K, N = itemIDs.size(0), itemIDs.size(1), self.Item.count + self.NUM_PADS
-
-        scores = torch.zeros((B, N), device=self.device)
+        scores = torch.rand((B, N), device=self.device) * 0.001
         scores = scores.scatter(
-            dim=1, index=itemIDs,
+            dim=1, index=ranked_item_ids,
             src=torch.arange(K + 1, 0, -1, device=self.device, dtype=torch.float).repeat((B, 1))
         )
         scores = scores[:, self.NUM_PADS:]
@@ -296,9 +326,16 @@ class SASRec(freerec.models.SeqRecArch):
         scores = scores.gather(
             dim=1, index=candidates
         )
-        return scores
+        return scores, num_invalid_item_ids
+
 
 class CoachForSASRec(freerec.launcher.Coach):
+
+    def set_other(self):
+        self.register_metric(
+            "NUM_INVALID", lambda x: x,
+            best_caster=min
+        )
 
     def train_per_epoch(self, epoch: int):
         for data in self.dataloader:
@@ -315,6 +352,42 @@ class CoachForSASRec(freerec.launcher.Coach):
                 mode='train', pool=['LOSS']
             )
 
+    def evaluate(self, epoch: int, step: int = -1, mode: str = 'valid'):
+        self.get_res_sys_arch().reset_ranking_buffers()
+        for data in self.dataloader:
+            bsz = data[self.Size]
+
+            data = self.dict_to_device(data)
+            if self.cfg.ranking == 'full':
+                scores, num_invalid_item_ids = self.model(data, ranking='full')
+                if self.remove_seen:
+                    seen = self.Item.to_csr(data[self.ISeen]).to(self.device).to_dense().bool()
+                    scores[seen] = -1e23
+                targets = self.Item.to_csr(data[self.IUnseen]).to(self.device).to_dense()
+            elif self.cfg.ranking == 'pool':
+                scores, num_invalid_item_ids = self.model(data, ranking='pool')
+                if self.Label in data:
+                    targets = data[self.Label]
+                else:
+                    targets = torch.zeros_like(scores)
+                    targets[:, 0].fill_(1)
+            else:
+                raise NotImplementedError(
+                    f"`ranking` should be 'full' or 'pool' but {self.cfg.ranking} received ..."
+                )
+
+            self.monitor(
+                scores, targets,
+                n=bsz, reduction="mean", mode=mode,
+                pool=['HITRATE', 'PRECISION', 'RECALL', 'NDCG', 'MRR']
+            )
+
+            self.monitor(
+                num_invalid_item_ids,
+                n=bsz, reduction="sum", mode=mode,
+                pool=['NUM_INVALID']
+            )
+
 
 def main():
 
@@ -328,8 +401,8 @@ def main():
 
     # datapipe
     trainpipe = model.sure_trainpipe(cfg.maxlen, cfg.batch_size)
-    validpipe = model.sure_validpipe(cfg.maxlen, ranking=cfg.ranking, batch_size=64)
-    testpipe = model.sure_testpipe(cfg.maxlen, ranking=cfg.ranking, batch_size=64)
+    validpipe = model.sure_validpipe(cfg.maxlen, ranking=cfg.ranking, batch_size=128)
+    testpipe = model.sure_testpipe(cfg.maxlen, ranking=cfg.ranking, batch_size=128)
 
     coach = CoachForSASRec(
         dataset=dataset,

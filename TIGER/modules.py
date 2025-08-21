@@ -5,6 +5,8 @@ from typing import Optional, List
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from collections import defaultdict
+from freerec.utils import infoLogger
 
 PADDING_VALUE = 0
 LOCAL_BATCH_SIZE = 64
@@ -18,11 +20,11 @@ class SemIDEmbedding(nn.Embedding):
         padding: bool = True
     ):
         sem_ids = self.remove_conflict(sem_ids)
-        N, self.num_levels = sem_ids.shape
-        num_codes = sem_ids.max(dim=0)[0] + 1
-        num_embeddings = num_codes.sum().item()
-        sem_ids[:, 1:] += num_codes.cumsum(dim=0)[:-1]
-        self.num_codes: List[int] = num_codes.tolist()
+        N, self.num_codebooks = sem_ids.shape
+        num_codewords = sem_ids.max(dim=0)[0] + 1
+        num_embeddings = num_codewords.sum().item()
+        sem_ids[:, 1:] += num_codewords.cumsum(dim=0)[:-1]
+        self.num_codewords: List[int] = num_codewords.tolist()
 
         padding_idx = None
         if padding:
@@ -40,6 +42,7 @@ class SemIDEmbedding(nn.Embedding):
         self.register_buffer(
             "sem_ids", sem_ids
         )
+        self.sem_id_map = {tuple(ids.tolist()): idx for idx, ids in enumerate(self.sem_ids.cpu())}
 
     def remove_conflict(self, sem_ids: torch.Tensor):
         r"""
@@ -53,11 +56,12 @@ class SemIDEmbedding(nn.Embedding):
         --------
         sem_ids: torch.Tensor, (N, L + 1)
         """
+        codes = defaultdict(int)
         check_code = []
-        for i in range(len(sem_ids)):
-            check_code.append(
-                (sem_ids[i+1:] == sem_ids[i]).all(dim=-1).sum().item()
-            )
+        for sem_id in sem_ids.cpu().tolist():
+            sem_id = tuple(sem_id)
+            check_code.append(codes[sem_id])
+            codes[sem_id] += 1
         sem_ids = torch.cat(
             (
                 sem_ids,
@@ -65,6 +69,8 @@ class SemIDEmbedding(nn.Embedding):
             ),
             dim=-1
         ) # (N, L + 1)
+        infoLogger(f"Number of conflicts: {sem_ids[:, -1].sum().item()}")
+        infoLogger(f"Additional tokens: {sem_ids[:, -1].max().item()}")
         return sem_ids
 
     def _check_validity(self, generated: torch.Tensor):
@@ -102,9 +108,6 @@ class SemIDEmbedding(nn.Embedding):
         """
         return self.sem_ids[item_ids].flatten(start_dim=1)
 
-    def _sem_ids_to_item_ids(self, sem_ids: torch.Tensor) -> torch.Tensor:
-        return sem_ids.unsqueeze(-2).eq(self.sem_ids).all(dim=-1).float().argmax(dim=-1)
-
     def sem_ids_to_item_ids(self, sem_ids: torch.Tensor) -> torch.Tensor:
         r"""
         Parameters:
@@ -115,9 +118,10 @@ class SemIDEmbedding(nn.Embedding):
         --------
         item_ids: torch.Tensor, (*,)
         """
-        item_ids = []
         sizes = sem_ids.shape[:-1]
-        for chunk in torch.split(sem_ids.flatten(end_dim=-2), LOCAL_BATCH_SIZE, dim=0):
-            item_ids.append(self._sem_ids_to_item_ids(chunk))
-        item_ids = torch.cat(item_ids, dim=0).view(*sizes)
-        return item_ids
+        item_ids = [
+            self.sem_id_map.get(tuple(sem_id), PADDING_VALUE) 
+            for sem_id in sem_ids.flatten(end_dim=-2).cpu().tolist()
+        ]
+        item_ids = torch.tensor(item_ids, dtype=torch.long, device=sem_ids.device)
+        return item_ids.view(*sizes)
