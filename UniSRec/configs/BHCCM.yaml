@@ -14,15 +14,12 @@ T: 0.1
 mask_ratio: 0.3
 s2sloss_weight: 1.e-4
 
-epochs: 100
+epochs: 300
 batch_size: 512
 optimizer: AdamW
 lr: 1.e-3
-weight_decay: 0.1
+weight_decay: 0.01
 
-# tfile: llama-2-7b-hf_title.pkl
-# tfile: llama-2-7b-hf_title_categories_brand.pkl
-# tfile: all-minilm-l12-v2_title.pkl
 tfile: all-minilm-l12-v2_title_categories_brand.pkl
 
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
