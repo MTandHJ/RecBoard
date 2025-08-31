@@ -45,7 +45,7 @@ features = [
 
 # vector quantization
 
-num_codebooks = 4 * len(fields)
+num_codebooks = 12
 num_codewords = 256
 num_bits = int(np.log2(num_codewords)) # 256 == 8bit
 quantizer = 'product'
