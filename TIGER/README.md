@@ -11,7 +11,7 @@
 
 1. Encoding the textual features first according to `encode_textual_features.py`.
 
-2. Performing vector quantization by RQ-VAE (`train_rqvae.py`) or RQ-Kmeans (`train_rq_kmeans.py`).
+2. Performing vector quantization by RQ-VAE (`train_rqvae.py`) or Residual Kmeans (`train_residual_kmeans.py`).
 
 3. Evaluation:
 

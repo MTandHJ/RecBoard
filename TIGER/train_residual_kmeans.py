@@ -15,7 +15,7 @@ cfg.add_argument("--kmeans-init-method", type=str, choices=("random", "points", 
 cfg.add_argument("--sem-feat-file", type=str, default=None)
 
 cfg.set_defaults(
-    description="RQ-KMeans",
+    description="R-KMeans",
     root="../../data",
     dataset='Amazon2014Beauty_1000_LOU',
     epochs=1,
@@ -28,7 +28,7 @@ cfg.set_defaults(
 cfg.compile()
 
 
-class RQKMeans(freerec.models.RecSysArch):
+class RKMeans(freerec.models.RecSysArch):
 
     def __init__(
         self, dataset: freerec.data.datasets.RecDataSet
@@ -92,7 +92,7 @@ class RQKMeans(freerec.models.RecSysArch):
         return self._sem_ids
 
 
-class CoachForRQKMeans(freerec.launcher.Coach):
+class CoachForRKMeans(freerec.launcher.Coach):
 
     def save_checkpoint(self, epoch):
         super().save_checkpoint(epoch)
@@ -142,13 +142,13 @@ def main():
     except AttributeError:
         dataset = freerec.data.datasets.RecDataSet(cfg.root, cfg.dataset, tasktag=cfg.tasktag)
 
-    model = RQKMeans(dataset)
+    model = RKMeans(dataset)
 
     # datapipe
     trainpipe = model.sure_trainpipe(cfg.batch_size)
     validpipe = model.sure_validpipe(cfg.batch_size)
 
-    coach = CoachForRQKMeans(
+    coach = CoachForRKMeans(
         dataset=dataset,
         trainpipe=trainpipe,
         validpipe=validpipe,
