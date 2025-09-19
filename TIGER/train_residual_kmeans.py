@@ -8,8 +8,8 @@ import freerec
 freerec.declare(version='1.0.1')
 
 cfg = freerec.parser.Parser()
-cfg.add_argument("--num-codes", type=int, default=256)
-cfg.add_argument("--num-levels", type=int, default=3)
+cfg.add_argument("--num-codebooks", type=int, default=3)
+cfg.add_argument("--num-codewords", type=int, default=256)
 cfg.add_argument("--num-iters", type=int, default=10)
 cfg.add_argument("--kmeans-init-method", type=str, choices=("random", "points", "++", "matrix"), default="random")
 cfg.add_argument("--sem-feat-file", type=str, default=None)
@@ -76,10 +76,10 @@ class RKMeans(freerec.models.RecSysArch):
             sem_ids = []
             z = self.Item.embeddings.weight.cpu().numpy()
 
-            for l in range(cfg.num_levels):
+            for l in range(cfg.num_codebooks):
                 codebook, codes = kmeans2(
                     z,
-                    k=cfg.num_codes, iter=cfg.num_iters,
+                    k=cfg.num_codewords, iter=cfg.num_iters,
                     minit=cfg.kmeans_init_method
                 )
                 sem_ids.append(codes)

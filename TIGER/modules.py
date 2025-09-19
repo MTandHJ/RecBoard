@@ -1,6 +1,6 @@
 
 
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -108,6 +108,9 @@ class SemIDEmbedding(nn.Embedding):
         """
         return self.sem_ids[item_ids].flatten(start_dim=1)
 
+    def _sem_id_mapping(self, sem_id: Tuple):
+        return self.sem_id_map.get(tuple(sem_id), PADDING_VALUE)
+
     def sem_ids_to_item_ids(self, sem_ids: torch.Tensor) -> torch.Tensor:
         r"""
         Parameters:
@@ -119,9 +122,9 @@ class SemIDEmbedding(nn.Embedding):
         item_ids: torch.Tensor, (*,)
         """
         sizes = sem_ids.shape[:-1]
-        item_ids = [
-            self.sem_id_map.get(tuple(sem_id), PADDING_VALUE) 
-            for sem_id in sem_ids.flatten(end_dim=-2).cpu().tolist()
-        ]
+        item_ids = list(map(
+            self._sem_id_mapping,
+            sem_ids.flatten(end_dim=-2).tolist()
+        ))
         item_ids = torch.tensor(item_ids, dtype=torch.long, device=sem_ids.device)
         return item_ids.view(*sizes)
