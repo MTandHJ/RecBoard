@@ -118,14 +118,15 @@ class STAMP(freerec.models.SeqRecArch):
         userEmbds, itemEmbds = self.encode(data)
 
         if cfg.loss in ('BCE', 'BPR'):
-            posEmbds = itemEmbds[data[self.IPos]].unsqueeze(1) # (B, D)
-            negEmbds = itemEmbds[data[self.INeg]].unsqueeze(1) # (B, D)
-            posLogits = torch.einsum("MD,MD->M", userEmbds, posEmbds) # (M,)
-            negLogits = torch.einsum("MD,MD->M", userEmbds, negEmbds) # (M,)
+            posEmbds = itemEmbds[data[self.IPos]] # (B, 1, D)
+            negEmbds = itemEmbds[data[self.INeg]] # (B, 1, D)
+            posLogits = torch.einsum("BD,BSD->BS", userEmbds, posEmbds) # (B, 1)
+            negLogits = torch.einsum("BD,BSD->BS", userEmbds, negEmbds) # (B, 1)
 
             if cfg.loss == 'BCE':
                 posLabels = torch.ones_like(posLogits)
                 negLabels = torch.zeros_like(negLogits)
+
                 rec_loss = self.criterion(posLogits, posLabels) + \
                     self.criterion(negLogits, negLabels)
             elif cfg.loss == 'BPR':
