@@ -1,0 +1,18 @@
+root: ../../data
+tasktag: NEXTITEM
+
+maxlen: 50
+num_heads: 1
+num_blocks: 2
+embedding_dim: 256
+dropout_rate: 0.
+
+epochs: 300
+batch_size: 512
+optimizer: AdamW
+lr: 1.e-3
+weight_decay: 0.5
+loss: BCE
+
+monitors: [LOSS, HitRate@1, HitRate@10, HitRate@20, NDCG@10, NDCG@20]
+which4best: NDCG@10

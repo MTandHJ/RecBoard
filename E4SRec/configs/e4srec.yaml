@@ -1,0 +1,18 @@
+root: ../../data
+tasktag: NEXTITEM
+
+maxlen: 50
+
+epochs: 3
+batch_size: 128 # batch_size per device
+gradient_accumulation_steps: 1
+optimizer: AdamW
+lr: 3.e-4
+weight_decay: 0.
+
+lora_rank: 16
+lora_alpha: 16
+lora_dropout: 0.05
+
+monitors: [LOSS, HitRate@1, HitRate@10, HitRate@20, NDCG@10, NDCG@20]
+which4best: NDCG@10
