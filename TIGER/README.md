@@ -3,9 +3,6 @@
 
 [[EdoardoBotta-RQ-VAE-Recommender](https://github.com/EdoardoBotta/RQ-VAE-Recommender)]
 
-> [!NOTE]
-> We implement the recommendation backbone on SASRec instead of T5.
-
 
 ## Usage
 
@@ -17,8 +14,8 @@
 
 Run with full ranking:
 
-    torchrun --nproc-per-node 4 main.py --config=configs/sasrec/xxx.yaml --ranking=full
+    python train_t5.py --config=configs/t5/xxx.yaml --ranking=full
 
 or with sampled-based ranking
 
-    torchrun --nproc-per-node 4 main.py --config=configs/sasrec/xxx.yaml --ranking=pool
+    python train_t5.py --config=configs/t5/xxx.yaml --ranking=pool

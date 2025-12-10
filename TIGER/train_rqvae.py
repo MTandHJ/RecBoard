@@ -6,7 +6,6 @@ import torch, os
 import torch.nn as nn
 import torch.nn.functional as F
 import freerec
-from freerec.data.tags import TIMESTAMP, SEQUENCE
 
 from utils import straight_through_estimator, gumbel_softmax_estimator, rotation_trick_estimator
 
@@ -126,18 +125,19 @@ class RQVAE(freerec.models.RecSysArch):
         )
 
         dims = [self.Item.embeddings.weight.size(1)] + cfg.hidden_dims + [cfg.codebook_dim]
+        ACT = nn.SiLU
 
         self.encoder = nn.Sequential()
         for l, (input_dim, output_dim) in enumerate(zip(dims[:-1], dims[1:]), start=1):
+            self.encoder.append(
+                nn.Dropout(cfg.dropout_rate)
+            )
             self.encoder.append(
                 nn.Linear(input_dim, output_dim, bias=False)
             )
             if l < len(dims) - 1:
                 self.encoder.append(
-                    nn.SiLU()
-                )
-                self.encoder.append(
-                    nn.Dropout(cfg.dropout_rate)
+                    ACT()
                 )
 
         self.quantizers = nn.ModuleList([
@@ -154,14 +154,14 @@ class RQVAE(freerec.models.RecSysArch):
         self.decoder, dims = nn.Sequential(), dims[::-1]
         for l, (input_dim, output_dim) in enumerate(zip(dims[:-1], dims[1:]), start=1):
             self.decoder.append(
+                nn.Dropout(cfg.dropout_rate)
+            )
+            self.decoder.append(
                 nn.Linear(input_dim, output_dim, bias=False)
             )
             if l < len(dims) - 1:
                 self.decoder.append(
-                    nn.SiLU()
-                )
-                self.decoder.append(
-                    nn.Dropout(cfg.dropout_rate)
+                    ACT()
                 )
 
         self.criterion = nn.MSELoss(reduction="sum")
@@ -252,7 +252,7 @@ class CoachForRQVAE(freerec.launcher.Coach):
                 sem_ids,
                 os.path.join(
                     self.cfg.LOG_PATH,
-                    f"sem_id_{epoch}.pkl"
+                    f"sem_id.pkl"
                 )
             )
 

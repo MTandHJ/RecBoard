@@ -5,20 +5,18 @@ tasktag: NEXTITEM
 num_codewords: 256
 num_codebooks: 3
 codebook_dim: 32
-hidden_dims: 512,256,128
-gradient_estimator: ste
+hidden_dims: 256,128,64
+gradient_estimator: rotation
 # gumbel softmax
 gumbel_temperature: 0.05
 apply_kmeans_init: True
 apply_sim_vq: False
-commit_weight: 1.
-dropout_rate: 0.1
+commit_weight: 0.3
+dropout_rate: 0.2
 
-epochs: 20000
-batch_size: 1024
+epochs: 100
+batch_size: 64
 lr: 1.e-3
 weight_decay: 1.e-2
-optimizer: AdamW
 
 sem_feat_file: sentence-t5-xl_title_categories_brand.pkl
-which4best: PPL#0

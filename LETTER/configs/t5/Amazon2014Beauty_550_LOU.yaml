@@ -1,0 +1,26 @@
+root: ../../data
+dataset: Amazon2014Beauty_550_LOU
+
+maxlen: 50
+
+embedding_dim: 64
+attention_size: 64
+intermediate_size: 64
+
+num_layers: 4
+num_heads: 4
+
+dropout_rate: 0.1
+input_dropout_rate: 0.
+
+epochs: 500
+optimizer: AdamW
+batch_size: 512
+lr: 1.e-3
+weight_decay: 1.e-3
+
+num_beams: 32
+sem_id_ckpt: ./logs/R-KMeans/Amazon2014Beauty_550_LOU/1117130719/sem_id_0.pkl
+
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+which4best: NDCG@10

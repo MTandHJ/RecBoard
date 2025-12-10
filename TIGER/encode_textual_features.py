@@ -2,9 +2,10 @@
 # %%
 
 import pandas as pd
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 import torch
 import numpy as np
-import os
 import pickle
 from tqdm import tqdm
 
@@ -12,7 +13,6 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from sentence_transformers import SentenceTransformer
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 # %%
 
