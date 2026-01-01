@@ -74,8 +74,6 @@ class E4SRec(freerec.models.SeqRecArch):
         self.model = get_peft_model(self.model, cfg.lora_config)
         self.model.config.use_cache = False
 
-        # self.model.save_pretrained()
-
         self.tokenizer = LlamaTokenizer.from_pretrained(
             cfg.saved_model,
             use_fast=False, local_files_only=True
@@ -214,6 +212,66 @@ class E4SRec(freerec.models.SeqRecArch):
 
 class CoachForE4SRec(freerec.launcher.Coach):
 
+    def save(self, filename = None, best: bool = False):
+        r"""
+        Save the model to `LOG_PATH` with a given filename.
+
+        Parameters:
+        -----------
+        filename: str, optional
+            `None`: Use `SAVED_FILENAME`
+        """
+        if freerec.ddp.is_main_process():
+            filename = self.cfg.SAVED_FILENAME if filename is None else filename
+            torch.save(
+                {
+                    'adaptor': self.get_res_sys_arch().adaptor.state_dict(),
+                    'output_proj': self.get_res_sys_arch().output_proj.state_dict()
+                },
+                os.path.join(self.cfg.LOG_PATH, filename)
+            )
+
+            suffix = 'best' if best else 'last'
+            self.get_res_sys_arch().model.save_pretrained(
+                os.path.join(self.cfg.LOG_PATH, f"LoRA-{suffix}"),
+                adapter_name="default"
+            )
+
+        freerec.ddp.synchronize()
+        return 
+
+    def save_best(self):
+        self.save(self.cfg.BEST_FILENAME, best=True)
+
+    def load(self, path, filename = None, best: bool = False):
+        filename = self.cfg.SAVED_FILENAME if filename is None else filename
+        ckpt = torch.load(
+            os.path.join(path, filename), 
+            map_location=self.device,
+            weights_only=True
+        )
+        self.get_res_sys_arch().adaptor.load_state_dict(ckpt['adaptor'])
+        self.get_res_sys_arch().output_proj.load_state_dict(ckpt['output_proj'])
+        suffix = 'best' if best else 'last'
+        self.get_res_sys_arch().model.load_adapter(
+            os.path.join(self.cfg.LOG_PATH, f"LoRA-{suffix}"),
+            adapter_name="default"
+        )
+
+        freerec.ddp.synchronize()
+        return
+
+    def load_best(self) -> None:
+        freerec.utils.infoLogger(f"[Coach] >>> Load best model @Epoch: {self._best_epoch} ({self._best_step}) ")
+        self.load(self.cfg.LOG_PATH, self.cfg.BEST_FILENAME, best=True)
+        return
+
+    def set_other(self):
+        freerec.utils.mkdirs(
+            os.path.join(self.cfg.LOG_PATH, f"LoRA-best"),
+            os.path.join(self.cfg.LOG_PATH, f"LoRA-last"),
+        )
+
     def set_optimizer(self):
         params = [param for param in self.model.parameters() if param.requires_grad]
         self.optimizer = torch.optim.AdamW(
@@ -261,8 +319,6 @@ class CoachForE4SRec(freerec.launcher.Coach):
 
             self.lr_scheduler.step()
         
-    def eval_at_best(self): ...
-
 
 def main():
 
