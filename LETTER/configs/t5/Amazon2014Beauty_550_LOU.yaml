@@ -7,7 +7,7 @@ embedding_dim: 64
 attention_size: 64
 intermediate_size: 64
 
-num_layers: 4
+num_layers: 4 # 6
 num_heads: 4
 
 dropout_rate: 0.1

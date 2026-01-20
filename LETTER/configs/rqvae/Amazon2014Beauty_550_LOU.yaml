@@ -3,20 +3,22 @@ dataset: Amazon2014Beauty_550_LOU
 tasktag: NEXTITEM
 
 num_codewords: 256
-num_codebooks: 3
+num_codebooks: 4
 codebook_dim: 32
-hidden_dims: 256,128,64
-gradient_estimator: rotation
-# gumbel softmax
-gumbel_temperature: 0.05
+hidden_dims: 512,256,128
 apply_kmeans_init: True
-apply_sim_vq: False
-commit_weight: 0.3
-dropout_rate: 0.2
+sk_epsilons: '0.,0.,0.,0.003'
+sk_iters: 50
 
-epochs: 100
-batch_size: 64
+cf_weight: 0.01
+commit_weight: 1.
+diversity_weight: 0.0001
+
+epochs: 20000
+batch_size: 1024
 lr: 1.e-3
-weight_decay: 1.e-2
+weight_decay: 0.1
+dropout_rate: 0.
 
 sem_feat_file: sentence-t5-xl_title_categories_brand.pkl
+collab_feat_file: ./collab/SASRec/Amazon2014Beauty_550_LOU/1222103121/sasrec-Amazon2014Beauty_550_LOU.pkl
