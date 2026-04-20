@@ -48,6 +48,6 @@ lr: 1.e-3
 weight_decay: 0.
 
 # Evaluation
-monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, HitRate@50, NDCG@5, NDCG@10, NDCG@20, NDCG@50]
 which4best: NDCG@10
 ```
