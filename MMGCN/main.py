@@ -1,41 +1,53 @@
-
-
+import os
 from typing import Dict, Tuple
 
-import torch, os
+import freerec
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import freerec
 
-freerec.declare(version='1.0.1')
+freerec.declare(version="1.0.1")
 
 cfg = freerec.parser.Parser()
 cfg.add_argument("--embedding-dim", type=int, default=64)
 cfg.add_argument("--num-layers", type=int, default=3)
-cfg.add_argument("--fusion-mode", type=str, choices=('cat', 'add'), default="add")
+cfg.add_argument("--fusion-mode", type=str, choices=("cat", "add"), default="add")
 
-cfg.add_argument("--afile", type=str, default=None, help="the file of acoustic modality features")
-cfg.add_argument("--vfile", type=str, default="visual_modality.pkl", help="the file of visual modality features")
-cfg.add_argument("--tfile", type=str, default="textual_modality.pkl", help="the file of textual modality features")
+cfg.add_argument(
+    "--afile", type=str, default=None, help="the file of acoustic modality features"
+)
+cfg.add_argument(
+    "--vfile",
+    type=str,
+    default="visual_modality.pkl",
+    help="the file of visual modality features",
+)
+cfg.add_argument(
+    "--tfile",
+    type=str,
+    default="textual_modality.pkl",
+    help="the file of textual modality features",
+)
 
 cfg.set_defaults(
     description="MMGCN",
     root="../../data",
-    dataset='Amazon2014Baby_550_MMRec',
+    dataset="Amazon2014Baby_550_MMRec",
     epochs=100,
     batch_size=1024,
-    optimizer='adam',
+    optimizer="adam",
     lr=1e-3,
     weight_decay=1e-4,
-    seed=1
+    seed=1,
 )
 cfg.compile()
 
 
 class GraphConvNet(nn.Module):
+    """Modality-specific graph convolution network with fusion layers."""
 
     def __init__(
-        self, 
+        self,
         num_users: int,
         feature_dim: int,
         embedding_dim: int,
@@ -45,11 +57,10 @@ class GraphConvNet(nn.Module):
         super().__init__()
 
         self.register_parameter(
-            'mUser',
+            "mUser",
             nn.parameter.Parameter(
-                torch.empty((num_users, feature_dim)),
-                requires_grad=True
-            )
+                torch.empty((num_users, feature_dim)), requires_grad=True
+            ),
         )
         nn.init.xavier_normal_(self.mUser)
 
@@ -58,32 +69,40 @@ class GraphConvNet(nn.Module):
 
         self.fusion_mode = fusion_mode
 
-        self.aggr_layers = nn.ModuleList([
-            nn.Linear(feature_dim, feature_dim),
-            nn.Linear(embedding_dim, embedding_dim),
-            nn.Linear(embedding_dim, embedding_dim),
-        ])
-        self.m2id_layers = nn.ModuleList([
-            nn.Linear(feature_dim, embedding_dim),
-            nn.Linear(embedding_dim, embedding_dim),
-            nn.Linear(embedding_dim, embedding_dim),
-        ])
-
-        if self.fusion_mode == "cat":
-            self.fusion_layers = nn.ModuleList([
-                nn.Linear(feature_dim + embedding_dim, embedding_dim),
-                nn.Linear(embedding_dim + embedding_dim, embedding_dim),
-                nn.Linear(embedding_dim + embedding_dim, embedding_dim),
-            ])
-        else:
-            self.fusion_layers = nn.ModuleList([
+        self.aggr_layers = nn.ModuleList(
+            [
+                nn.Linear(feature_dim, feature_dim),
+                nn.Linear(embedding_dim, embedding_dim),
+                nn.Linear(embedding_dim, embedding_dim),
+            ]
+        )
+        self.m2id_layers = nn.ModuleList(
+            [
                 nn.Linear(feature_dim, embedding_dim),
                 nn.Linear(embedding_dim, embedding_dim),
                 nn.Linear(embedding_dim, embedding_dim),
-            ])
+            ]
+        )
+
+        if self.fusion_mode == "cat":
+            self.fusion_layers = nn.ModuleList(
+                [
+                    nn.Linear(feature_dim + embedding_dim, embedding_dim),
+                    nn.Linear(embedding_dim + embedding_dim, embedding_dim),
+                    nn.Linear(embedding_dim + embedding_dim, embedding_dim),
+                ]
+            )
+        else:
+            self.fusion_layers = nn.ModuleList(
+                [
+                    nn.Linear(feature_dim, embedding_dim),
+                    nn.Linear(embedding_dim, embedding_dim),
+                    nn.Linear(embedding_dim, embedding_dim),
+                ]
+            )
 
     def forward(self, mItem, idEmbds, A: torch.Tensor):
-        x = torch.cat((self.mUser, mItem), dim=0) # (N, F_dim)
+        x = torch.cat((self.mUser, mItem), dim=0)  # (N, F_dim)
         x = F.normalize(x, dim=-1)
 
         for l in range(self.L):
@@ -91,44 +110,45 @@ class GraphConvNet(nn.Module):
             linear2 = self.m2id_layers[l]
             linear3 = self.fusion_layers[l]
 
-            h = self.act(A @ linear1(x)) # F/E_dim -> F/E_dim
-            x_hat = self.act(linear2(x)) + idEmbds # F/E_dim -> E_dim
+            h = self.act(A @ linear1(x))  # F/E_dim -> F/E_dim
+            x_hat = self.act(linear2(x)) + idEmbds  # F/E_dim -> E_dim
             if self.fusion_mode == "cat":
-                x_hat = torch.cat((h, x_hat), dim=-1) # (F/E_dim + E_dim)
-                x = self.act(linear3(x_hat)) # -> E_dim
+                x_hat = torch.cat((h, x_hat), dim=-1)  # (F/E_dim + E_dim)
+                x = self.act(linear3(x_hat))  # -> E_dim
             else:
                 x = self.act(linear3(h) + x_hat)
-        
+
         return x
 
 
 class MMGCN(freerec.models.GenRecArch):
+    """
+    per-modality: modality features (+ user params) -> normalize
+    -> L-layer GCN on left-normalized adj: each layer applies
+    linear aggregation + LeakyReLU, fused with ID embds via
+    concat-linear (cat mode) or add (add mode)
+    -> average across modalities -> split user/item
+    -> dot product -> BPR loss + L2 regularization.
+    """
 
     def __init__(
-        self, dataset: freerec.data.datasets.RecDataSet,
-        embedding_dim: int = 64, num_layers: int = 3
+        self,
+        dataset: freerec.data.datasets.RecDataSet,
     ) -> None:
         super().__init__(dataset)
 
-        self.num_layers = num_layers
+        self.num_layers = cfg.num_layers
 
         self.User.add_module(
-            "embeddings", nn.Embedding(
-                self.User.count, embedding_dim
-            )
+            "embeddings", nn.Embedding(self.User.count, cfg.embedding_dim)
         )
 
         self.Item.add_module(
-            "embeddings", nn.Embedding(
-                self.Item.count, embedding_dim
-            )
+            "embeddings", nn.Embedding(self.Item.count, cfg.embedding_dim)
         )
 
         self.register_buffer(
-            "Adj",
-            self.dataset.train().to_normalized_adj(
-                normalization='left'
-            )
+            "Adj", self.dataset.train().to_normalized_adj(normalization="left")
         )
 
         self.load_feats()
@@ -136,7 +156,7 @@ class MMGCN(freerec.models.GenRecArch):
         if cfg.vfile:
             self.vGCN = GraphConvNet(
                 self.User.count,
-                feature_dim=256, # 256 indicates the hidden size of visual features
+                feature_dim=256,  # 256 indicates the hidden size of visual features
                 embedding_dim=cfg.embedding_dim,
                 fusion_mode=cfg.fusion_mode,
                 num_layers=cfg.num_layers,
@@ -161,10 +181,12 @@ class MMGCN(freerec.models.GenRecArch):
                 num_layers=cfg.num_layers,
             )
 
-        self.num_modality = len([file_ for file_ in (cfg.afile, cfg.vfile, cfg.tfile) if file_])
+        self.num_modality = len(
+            [file_ for file_ in (cfg.afile, cfg.vfile, cfg.tfile) if file_]
+        )
         assert self.num_modality > 0
 
-        self.criterion = freerec.criterions.BPRLoss(reduction='mean')
+        self.criterion = freerec.criterions.BPRLoss(reduction="mean")
 
         self.reset_parameters()
 
@@ -173,62 +195,48 @@ class MMGCN(freerec.models.GenRecArch):
             if isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
                 if m.bias is not None:
-                    nn.init.constant_(m.bias, 0.)
+                    nn.init.constant_(m.bias, 0.0)
             elif isinstance(m, nn.Embedding):
-                nn.init.normal_(m.weight, std=1.e-4)
+                nn.init.normal_(m.weight, std=1.0e-4)
             elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
-                nn.init.constant_(m.weight, 1.)
-                nn.init.constant_(m.bias, 0.)
+                nn.init.constant_(m.weight, 1.0)
+                nn.init.constant_(m.bias, 0.0)
 
     def sure_trainpipe(self, batch_size: int):
-        return self.dataset.train().shuffled_pairs_source(
-        ).gen_train_sampling_neg_(
-            num_negatives=1
-        ).batch_(batch_size).tensor_()
+        return (
+            self.dataset.train()
+            .shuffled_pairs_source()
+            .gen_train_sampling_neg_(num_negatives=1)
+            .batch_(batch_size)
+            .tensor_()
+        )
 
     def load_feats(self):
         from freerec.utils import import_pickle
+
         path = self.dataset.path
         if cfg.vfile:
-            self.register_buffer(
-                "vFeats", import_pickle(
-                    os.path.join(path, cfg.vfile)
-                )
-            )
+            self.register_buffer("vFeats", import_pickle(os.path.join(path, cfg.vfile)))
         if cfg.tfile:
-            self.register_buffer(
-                "tFeats", import_pickle(
-                    os.path.join(path, cfg.tfile)
-                )
-            )
+            self.register_buffer("tFeats", import_pickle(os.path.join(path, cfg.tfile)))
         if cfg.afile:
-            self.register_buffer(
-                "aFeats", import_pickle(
-                    os.path.join(path, cfg.afile)
-                )
-            )
+            self.register_buffer("aFeats", import_pickle(os.path.join(path, cfg.afile)))
 
     def encode(self) -> Tuple[torch.Tensor, torch.Tensor]:
         userEmbds = self.User.embeddings.weight
         itemEmbds = self.Item.embeddings.weight
-        idEmbds = torch.cat((userEmbds, itemEmbds), dim=0).flatten(1) # N x D
+        idEmbds = torch.cat((userEmbds, itemEmbds), dim=0).flatten(1)  # N x D
 
         if cfg.vfile:
-            vEmbds = self.vGCN(
-                self.vProjector(self.vFeats), idEmbds, self.Adj
-            )
+            vEmbds = self.vGCN(self.vProjector(self.vFeats), idEmbds, self.Adj)
         else:
             vEmbds = 0
         if cfg.tfile:
-            tEmbds = self.tGCN(
-                self.tFeats, idEmbds, self.Adj
-            )
+            tEmbds = self.tGCN(self.tFeats, idEmbds, self.Adj)
         else:
             tEmbds = 0
         if cfg.afile:
-            aEmbds = self.aGCN(
-                self.aFeats, idEmbds, self.Adj
-            )
+            aEmbds = self.aGCN(self.aFeats, idEmbds, self.Adj)
         else:
             aEmbds = 0
         avgEmbds = (vEmbds + tEmbds + aEmbds) / self.num_modality
@@ -239,23 +247,27 @@ class MMGCN(freerec.models.GenRecArch):
     def fit(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
         userEmbds, itemEmbds = self.encode()
         users, positives, negatives = data[self.User], data[self.Item], data[self.INeg]
-        userEmbds = userEmbds[users] # (B, 1, D)
-        iposEmbds = itemEmbds[positives] # (B, 1, D)
-        inegEmbds = itemEmbds[negatives] # (B, K, D)
+        userEmbds = userEmbds[users]  # (B, 1, D)
+        iposEmbds = itemEmbds[positives]  # (B, 1, D)
+        inegEmbds = itemEmbds[negatives]  # (B, K, D)
 
         rec_loss = self.criterion(
             torch.einsum("BKD,BKD->BK", userEmbds, iposEmbds),
-            torch.einsum("BKD,BKD->BK", userEmbds, inegEmbds)
+            torch.einsum("BKD,BKD->BK", userEmbds, inegEmbds),
         )
         emb_loss = self.criterion.regularize(
             [
                 self.User.embeddings(users),
                 self.Item.embeddings(positives),
-                self.Item.embeddings(negatives)
-            ], rtype='l2'
+                self.Item.embeddings(negatives),
+            ],
+            rtype="l2",
         ) / len(users)
 
-        return rec_loss, emb_loss + self.vGCN.mUser.square().mean()
+        return {
+            "rec_loss": rec_loss,
+            "emb_loss": emb_loss + self.vGCN.mUser.square().mean(),
+        }
 
     def reset_ranking_buffers(self):
         """This method will be executed before evaluation."""
@@ -265,57 +277,61 @@ class MMGCN(freerec.models.GenRecArch):
         self.ranking_buffer[self.Item] = itemEmbds.detach().clone()
 
     def recommend_from_full(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
-        userEmbds = self.ranking_buffer[self.User][data[self.User]] # (B, 1, D)
+        userEmbds = self.ranking_buffer[self.User][data[self.User]]  # (B, 1, D)
         itemEmbds = self.ranking_buffer[self.Item]
         return torch.einsum("BKD,ND->BN", userEmbds, itemEmbds)
 
     def recommend_from_pool(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
-        userEmbds = self.ranking_buffer[self.User][data[self.User]] # (B, 1, D)
-        itemEmbds = self.ranking_buffer[self.Item][data[self.IUnseen]] # (B, 101, D)
+        userEmbds = self.ranking_buffer[self.User][data[self.User]]  # (B, 1, D)
+        itemEmbds = self.ranking_buffer[self.Item][data[self.IUnseen]]  # (B, 101, D)
         return torch.einsum("BKD,BKD->BK", userEmbds, itemEmbds)
 
 
 class CoachForMMGCN(freerec.launcher.Coach):
+    """Coach for MMGCN training."""
 
     def set_optimizer(self):
-        if self.cfg.optimizer.lower() == 'sgd':
+        if self.cfg.optimizer.lower() == "sgd":
             self.optimizer = torch.optim.SGD(
-                self.model.parameters(), lr=self.cfg.lr, 
+                self.model.parameters(),
+                lr=self.cfg.lr,
                 momentum=self.cfg.momentum,
                 nesterov=self.cfg.nesterov,
                 # weight_decay=self.cfg.weight_decay
             )
-        elif self.cfg.optimizer.lower() == 'adam':
+        elif self.cfg.optimizer.lower() == "adam":
             self.optimizer = torch.optim.Adam(
-                self.model.parameters(), lr=self.cfg.lr,
+                self.model.parameters(),
+                lr=self.cfg.lr,
                 betas=(self.cfg.beta1, self.cfg.beta2),
                 # weight_decay=self.cfg.weight_decay
             )
-        elif self.cfg.optimizer.lower() == 'adamw':
+        elif self.cfg.optimizer.lower() == "adamw":
             self.optimizer = torch.optim.AdamW(
-                self.model.parameters(), lr=self.cfg.lr,
+                self.model.parameters(),
+                lr=self.cfg.lr,
                 betas=(self.cfg.beta1, self.cfg.beta2),
                 # weight_decay=self.cfg.weight_decay
             )
         else:
-            raise NotImplementedError(
-                f"Unexpected optimizer {self.cfg.optimizer} ..."
-            )
+            raise NotImplementedError(f"Unexpected optimizer {self.cfg.optimizer} ...")
 
     def train_per_epoch(self, epoch: int):
         for data in self.dataloader:
             data = self.dict_to_device(data)
-            rec_loss, emb_loss = self.model(data)
-            loss = rec_loss + self.cfg.weight_decay * emb_loss
+            losses = self.model(data)
+            loss = losses["rec_loss"] + self.cfg.weight_decay * losses["emb_loss"]
 
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            
+
             self.monitor(
-                loss.item(), 
-                n=len(data[self.User]), reduction="mean", 
-                mode='train', pool=['LOSS']
+                loss.item(),
+                n=len(data[self.User]),
+                reduction="mean",
+                mode="train",
+                pool=["LOSS"],
             )
 
 
@@ -324,12 +340,11 @@ def main():
     try:
         dataset = getattr(freerec.data.datasets, cfg.dataset)(root=cfg.root)
     except AttributeError:
-        dataset = freerec.data.datasets.RecDataSet(cfg.root, cfg.dataset, tasktag=cfg.tasktag)
+        dataset = freerec.data.datasets.RecDataSet(
+            cfg.root, cfg.dataset, tasktag=cfg.tasktag
+        )
 
-    model = MMGCN(
-        dataset,
-        embedding_dim=cfg.embedding_dim, num_layers=cfg.num_layers
-    )
+    model = MMGCN(dataset)
 
     trainpipe = model.sure_trainpipe(cfg.batch_size)
     validpipe = model.sure_validpipe(cfg.ranking)
@@ -341,7 +356,7 @@ def main():
         validpipe=validpipe,
         testpipe=testpipe,
         model=model,
-        cfg=cfg
+        cfg=cfg,
     )
     coach.fit()
 

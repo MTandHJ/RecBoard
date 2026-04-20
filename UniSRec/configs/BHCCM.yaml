@@ -1,7 +1,9 @@
+# Data
 root: ../../data
 dataset: Amazon2014Beauty_1000_LOU,Amazon2014Home_1000_LOU,Amazon2014Clothing_1000_LOU,Amazon2014CDs_1000_LOU,Amazon2014Movies_1000_LOU
 tasktag: NEXTITEM
 
+# Model
 maxlen: 50
 num_heads: 2
 num_blocks: 1
@@ -13,14 +15,15 @@ num_moe_experts: 16
 T: 0.1
 mask_ratio: 0.3
 s2sloss_weight: 1.e-4
+tfile: all-minilm-l12-v2_title_categories_brand.pkl
 
+# Training
 epochs: 300
 batch_size: 512
 optimizer: AdamW
 lr: 1.e-3
 weight_decay: 0.01
 
-tfile: all-minilm-l12-v2_title_categories_brand.pkl
-
+# Evaluation
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
 which4best: NDCG@10

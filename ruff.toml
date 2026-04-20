@@ -1,0 +1,13 @@
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "N806",  # camelCase variable names (project convention)
+    "N802",  # camelCase function names
+    "N803",  # camelCase argument names
+    "N816",  # camelCase global variable names
+    "E741",  # ambiguous variable names (l, I, O) — common in loop indices
+    "E501",  # line too long — enforced by ruff format, not lint
+]
+
+[format]
+quote-style = "double"

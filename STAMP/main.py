@@ -1,48 +1,54 @@
-
-
 from typing import Dict, Tuple, Union
 
+import freerec
 import torch
 import torch.nn as nn
-import freerec
 
-freerec.declare(version='1.0.1')
+freerec.declare(version="1.0.1")
 
 cfg = freerec.parser.Parser()
 cfg.add_argument("--maxlen", type=int, default=50)
 cfg.add_argument("--embedding-dim", type=int, default=64)
 cfg.add_argument("--hidden-size", type=int, default=64)
-cfg.add_argument("--loss", type=str, choices=('BPR', 'BCE', 'CE'), default='BCE')
+cfg.add_argument("--loss", type=str, choices=("BPR", "BCE", "CE"), default="BCE")
 
 cfg.set_defaults(
     description="STAMP",
     root="../../data",
-    dataset='Amazon2014Beauty_550_LOU',
+    dataset="Amazon2014Beauty_550_LOU",
     epochs=200,
     batch_size=256,
-    optimizer='adam',
+    optimizer="adam",
     lr=1e-3,
-    weight_decay=0.,
+    weight_decay=0.0,
     seed=1,
 )
 cfg.compile()
 
 
 class STAMP(freerec.models.SeqRecArch):
+    """
+    item seq embds -> mean pooling + last-click embd
+    -> trilinear attention (w0, w1, w2, w3) -> weighted sum + last-click embd
+    -> tanh MLP (two branches: attention output and last-click)
+    -> element-wise product -> dot product -> BCE/BPR/CE loss.
+    """
 
     def __init__(
-        self, dataset: freerec.data.datasets.RecDataSet,
+        self,
+        dataset: freerec.data.datasets.RecDataSet,
     ) -> None:
         super().__init__(dataset)
 
         self.embedding_dim = cfg.embedding_dim
 
         self.Item.add_module(
-            'embeddings', nn.Embedding(
+            "embeddings",
+            nn.Embedding(
                 num_embeddings=self.Item.count + self.NUM_PADS,
                 embedding_dim=self.embedding_dim,
-                padding_idx=self.PADDING_VALUE
-            )
+                padding_idx=self.PADDING_VALUE,
+            ),
         )
 
         self.w1 = nn.Linear(self.embedding_dim, self.embedding_dim, bias=False)
@@ -50,8 +56,10 @@ class STAMP(freerec.models.SeqRecArch):
         self.w3 = nn.Linear(self.embedding_dim, self.embedding_dim, bias=False)
         self.w0 = nn.Linear(self.embedding_dim, 1, bias=False)
         self.register_parameter(
-            'ba',
-            nn.Parameter(torch.zeros(self.embedding_dim).view(1, 1, -1), requires_grad=True)
+            "ba",
+            nn.Parameter(
+                torch.zeros(self.embedding_dim).view(1, 1, -1), requires_grad=True
+            ),
         )
         self.mlp_a = nn.Linear(self.embedding_dim, cfg.hidden_size, bias=True)
         self.mlp_b = nn.Linear(self.embedding_dim, cfg.hidden_size, bias=True)
@@ -59,12 +67,12 @@ class STAMP(freerec.models.SeqRecArch):
         self.sigmoid = nn.Sigmoid()
         self.tanh = nn.Tanh()
 
-        if cfg.loss == 'BCE':
-            self.criterion = freerec.criterions.BCELoss4Logits(reduction='mean')
-        elif cfg.loss == 'BPR':
-            self.criterion = freerec.criterions.BPRLoss(reduction='mean')
-        elif cfg.loss == 'CE':
-            self.criterion = freerec.criterions.CrossEntropy4Logits(reduction='mean')
+        if cfg.loss == "BCE":
+            self.criterion = freerec.criterions.BCELoss4Logits(reduction="mean")
+        elif cfg.loss == "BPR":
+            self.criterion = freerec.criterions.BPRLoss(reduction="mean")
+        elif cfg.loss == "CE":
+            self.criterion = freerec.criterions.CrossEntropy4Logits(reduction="mean")
 
         self.reset_parameters()
 
@@ -73,70 +81,73 @@ class STAMP(freerec.models.SeqRecArch):
             if isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, std=0.05)
                 if m.bias is not None:
-                    nn.init.constant_(m.bias, 0.)
+                    nn.init.constant_(m.bias, 0.0)
             elif isinstance(m, nn.Embedding):
                 nn.init.normal_(m.weight, std=0.002)
 
     def sure_trainpipe(self, maxlen: int, batch_size: int):
-        return self.dataset.train().shuffled_roll_seqs_source(
-           maxlen=maxlen, keep_at_least_itself=True
-        ).seq_train_yielding_pos_(
-            start_idx_for_target=-1, end_idx_for_input=-1
-        ).seq_train_sampling_neg_(
-            num_negatives=1
-        ).add_(
-            offset=self.NUM_PADS, modified_fields=(self.ISeq,)
-        ).lpad_(
-            maxlen, modified_fields=(self.ISeq,),
-            padding_value=self.PADDING_VALUE
-        ).batch_(batch_size).tensor_()
-   
+        return (
+            self.dataset.train()
+            .shuffled_roll_seqs_source(maxlen=maxlen, keep_at_least_itself=True)
+            .seq_train_yielding_pos_(start_idx_for_target=-1, end_idx_for_input=-1)
+            .seq_train_sampling_neg_(num_negatives=1)
+            .add_(offset=self.NUM_PADS, modified_fields=(self.ISeq,))
+            .lpad_(
+                maxlen, modified_fields=(self.ISeq,), padding_value=self.PADDING_VALUE
+            )
+            .batch_(batch_size)
+            .tensor_()
+        )
+
     def encode(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         seqs = data[self.ISeq]
         masks = seqs.not_equal(0)
-        lens = masks.sum(dim=-1, keepdim=True) # (B, 1)
-        seqs = self.Item.embeddings(seqs) # (B, S, D)
-        last = seqs[:, -1, :] # (B, D)
-        ms = seqs.sum(dim=1).div(lens).unsqueeze(1) # (B, 1, D)
+        lens = masks.sum(dim=-1, keepdim=True)  # (B, 1)
+        seqs = self.Item.embeddings(seqs)  # (B, S, D)
+        last = seqs[:, -1, :]  # (B, D)
+        ms = seqs.sum(dim=1).div(lens).unsqueeze(1)  # (B, 1, D)
 
-        alphas = self.w0(self.sigmoid(
-            self.w1(seqs) + self.w2(last.unsqueeze(1)) + self.w3(ms) + self.ba
-        )) # (B, S, 1)
+        alphas = self.w0(
+            self.sigmoid(
+                self.w1(seqs) + self.w2(last.unsqueeze(1)) + self.w3(ms) + self.ba
+            )
+        )  # (B, S, 1)
         ma = alphas.mul(seqs).sum(1) + last
 
         hs = self.tanh(self.mlp_a(ma))
         ht = self.tanh(self.mlp_b(last))
-        h = hs.mul(ht) # (B, D)
+        h = hs.mul(ht)  # (B, D)
 
-        return h, self.Item.embeddings.weight[self.NUM_PADS:]
+        return h, self.Item.embeddings.weight[self.NUM_PADS :]
 
     def fit(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
         userEmbds, itemEmbds = self.encode(data)
 
-        if cfg.loss in ('BCE', 'BPR'):
-            posEmbds = itemEmbds[data[self.IPos]] # (B, 1, D)
-            negEmbds = itemEmbds[data[self.INeg]] # (B, 1, D)
-            posLogits = torch.einsum("BD,BSD->BS", userEmbds, posEmbds) # (B, 1)
-            negLogits = torch.einsum("BD,BSD->BS", userEmbds, negEmbds) # (B, 1)
+        if cfg.loss in ("BCE", "BPR"):
+            posEmbds = itemEmbds[data[self.IPos]]  # (B, 1, D)
+            negEmbds = itemEmbds[data[self.INeg]]  # (B, 1, D)
+            posLogits = torch.einsum("BD,BSD->BS", userEmbds, posEmbds)  # (B, 1)
+            negLogits = torch.einsum("BD,BSD->BS", userEmbds, negEmbds)  # (B, 1)
 
-            if cfg.loss == 'BCE':
+            if cfg.loss == "BCE":
                 posLabels = torch.ones_like(posLogits)
                 negLabels = torch.zeros_like(negLogits)
 
-                rec_loss = self.criterion(posLogits, posLabels) + \
-                    self.criterion(negLogits, negLabels)
-            elif cfg.loss == 'BPR':
+                rec_loss = self.criterion(posLogits, posLabels) + self.criterion(
+                    negLogits, negLabels
+                )
+            elif cfg.loss == "BPR":
                 rec_loss = self.criterion(posLogits, negLogits)
-        elif cfg.loss == 'CE':
-            logits = torch.einsum("MD,ND->MN", userEmbds, itemEmbds) # (M, N)
-            labels = data[self.IPos].flatten() # (M,)
+        elif cfg.loss == "CE":
+            logits = torch.einsum("MD,ND->MN", userEmbds, itemEmbds)  # (M, N)
+            labels = data[self.IPos].flatten()  # (M,)
             rec_loss = self.criterion(logits, labels)
 
-        return rec_loss
+        return {"rec_loss": rec_loss}
 
     def recommend_from_full(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
@@ -148,25 +159,29 @@ class STAMP(freerec.models.SeqRecArch):
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> torch.Tensor:
         userEmbds, itemEmbds = self.encode(data)
-        itemEmbds = itemEmbds[data[self.IUnseen]] # (B, K, D)
+        itemEmbds = itemEmbds[data[self.IUnseen]]  # (B, K, D)
         return torch.einsum("BD,BKD->BK", userEmbds, itemEmbds)
 
 
 class CoachForSTAMP(freerec.launcher.Coach):
+    """Coach for STAMP training."""
 
     def train_per_epoch(self, epoch: int):
         for data in self.dataloader:
             data = self.dict_to_device(data)
-            loss = self.model(data)
+            losses = self.model(data)
+            loss = losses["rec_loss"]
 
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-           
+
             self.monitor(
-                loss.item(), 
-                n=len(data[self.User]), reduction="mean", 
-                mode='train', pool=['LOSS']
+                loss.item(),
+                n=len(data[self.User]),
+                reduction="mean",
+                mode="train",
+                pool=["LOSS"],
             )
 
 
@@ -176,7 +191,9 @@ def main():
     try:
         dataset = getattr(freerec.data.datasets, cfg.dataset)(root=cfg.root)
     except AttributeError:
-        dataset = freerec.data.datasets.RecDataSet(cfg.root, cfg.dataset, tasktag=cfg.tasktag)
+        dataset = freerec.data.datasets.RecDataSet(
+            cfg.root, cfg.dataset, tasktag=cfg.tasktag
+        )
 
     model = STAMP(dataset)
 
@@ -191,7 +208,7 @@ def main():
         validpipe=validpipe,
         testpipe=testpipe,
         model=model,
-        cfg=cfg
+        cfg=cfg,
     )
     coach.fit()
 

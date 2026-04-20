@@ -1,18 +1,21 @@
+# Data
 root: ../../data
 dataset: Yelp2019_550_S3Rec
 
+# Model
 maxlen: 50
 num_layers: 3
 embedding_dim: 64
+dropout_rate: 0.7
 
+# Training
 lr: 5.e-3
 epochs: 50
 batch_size: 512
 optimizer: adamw
 weight_decay: 1.e-6
-dropout_rate: 0.7
+eval_freq: 1
 
+# Evaluation
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
 which4best: NDCG@10
-
-eval_freq: 1

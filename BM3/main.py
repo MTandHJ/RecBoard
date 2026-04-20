@@ -1,14 +1,13 @@
-
-
+import os
 from typing import Dict, Tuple
 
-import torch, os
+import freerec
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.functional import cosine_similarity
-import freerec
 
-freerec.declare(version='1.0.1')
+freerec.declare(version="1.0.1")
 
 cfg = freerec.parser.Parser()
 cfg.add_argument("--embedding-dim", type=int, default=64)
@@ -16,53 +15,66 @@ cfg.add_argument("--num-layers", type=int, default=3)
 
 
 cfg.add_argument("--dropout-rate", type=float, default=0.5)
-cfg.add_argument("--second-l", type=float, default=2.)
-cfg.add_argument("--reg-weight", type=float, default=1.e-1)
+cfg.add_argument("--second-l", type=float, default=2.0)
+cfg.add_argument("--reg-weight", type=float, default=1.0e-1)
 
-cfg.add_argument("--afile", type=str, default=None, help="the file of acoustic modality features")
-cfg.add_argument("--vfile", type=str, default="visual_modality.pkl", help="the file of visual modality features")
-cfg.add_argument("--tfile", type=str, default="textual_modality.pkl", help="the file of textual modality features")
+cfg.add_argument(
+    "--afile", type=str, default=None, help="the file of acoustic modality features"
+)
+cfg.add_argument(
+    "--vfile",
+    type=str,
+    default="visual_modality.pkl",
+    help="the file of visual modality features",
+)
+cfg.add_argument(
+    "--tfile",
+    type=str,
+    default="textual_modality.pkl",
+    help="the file of textual modality features",
+)
 
 cfg.set_defaults(
     description="BM3",
     root="../../data",
-    dataset='Amazon2024Baby_550_MMRec',
+    dataset="Amazon2024Baby_550_MMRec",
     epochs=1000,
     batch_size=2048,
-    optimizer='adam',
+    optimizer="adam",
     lr=1e-3,
     weight_decay=1e-4,
-    seed=1
+    seed=1,
 )
 cfg.compile()
 
 
 class BM3(freerec.models.GenRecArch):
+    """
+    user/item ID embds -> LightGCN propagation (item branch adds skip connection)
+    -> predictor (online); dropout (target, stop-grad)
+    visual/textual embds -> linear projectors -> predictor (online)
+    -> BYOL-style cosine similarity loss (u-i, i-u, modal-to-ID, modal self)
+    -> + L2 regularization.
+    """
 
     def __init__(
-        self, dataset: freerec.data.datasets.RecDataSet,
+        self,
+        dataset: freerec.data.datasets.RecDataSet,
     ) -> None:
         super().__init__(dataset)
 
         self.num_layers = cfg.num_layers
 
         self.User.add_module(
-            "embeddings", nn.Embedding(
-                self.User.count, cfg.embedding_dim
-            )
+            "embeddings", nn.Embedding(self.User.count, cfg.embedding_dim)
         )
 
         self.Item.add_module(
-            "embeddings", nn.Embedding(
-                self.Item.count, cfg.embedding_dim
-            )
+            "embeddings", nn.Embedding(self.Item.count, cfg.embedding_dim)
         )
 
         self.register_buffer(
-            "Adj",
-            self.dataset.train().to_normalized_adj(
-                normalization='sym'
-            )
+            "Adj", self.dataset.train().to_normalized_adj(normalization="sym")
         )
 
         self.load_feats(dataset.path)
@@ -70,6 +82,13 @@ class BM3(freerec.models.GenRecArch):
         nn.init.xavier_normal_(self.predictor.weight)
 
         self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.xavier_normal_(self.User.embeddings.weight)
+        nn.init.xavier_normal_(self.Item.embeddings.weight)
+
+    def sure_trainpipe(self, batch_size: int):
+        return self.dataset.train().shuffled_pairs_source().batch_(batch_size).tensor_()
 
     def load_feats(self, path: str):
         r"""
@@ -80,51 +99,38 @@ class BM3(freerec.models.GenRecArch):
         I tried a frozen variant on Baby and found this operation makes no difference.
         """
         from freerec.utils import import_pickle
+
         if cfg.vfile:
-            vFeats = import_pickle(
-                os.path.join(path, cfg.vfile)
-            )
+            vFeats = import_pickle(os.path.join(path, cfg.vfile))
             self.vFeats = nn.Embedding.from_pretrained(vFeats, freeze=False)
             self.image_trs = nn.Linear(self.vFeats.weight.size(1), cfg.embedding_dim)
             nn.init.xavier_normal_(self.image_trs.weight)
 
         if cfg.tfile:
-            tFeats = import_pickle(
-                os.path.join(path, cfg.tfile)
-            )
+            tFeats = import_pickle(os.path.join(path, cfg.tfile))
             self.tFeats = nn.Embedding.from_pretrained(tFeats, freeze=False)
             self.text_trs = nn.Linear(self.tFeats.weight.size(1), cfg.embedding_dim)
             nn.init.xavier_normal_(self.text_trs.weight)
 
         return
 
-    def reset_parameters(self):
-        nn.init.xavier_normal_(self.User.embeddings.weight)
-        nn.init.xavier_normal_(self.Item.embeddings.weight)
-
-    def sure_trainpipe(self, batch_size: int):
-        return self.dataset.train().shuffled_pairs_source(
-        ).batch_(batch_size).tensor_()
-
-    def encode(self) -> Tuple[torch.Tensor, torch.Tensor]:
-        allEmbds = torch.cat(
-            (self.User.embeddings.weight, self.Item.embeddings.weight), dim=0
-        ) # (N, D)
-        avgEmbds = allEmbds / (self.num_layers + 1)
-        for _ in range(self.num_layers):
-            allEmbds = self.Adj @ allEmbds
-            avgEmbds += allEmbds / (self.num_layers + 1)
-        userEmbds, itemEmbds = torch.split(
-            avgEmbds, (self.User.count, self.Item.count)
-        )
-        return userEmbds, itemEmbds + self.Item.embeddings.weight
-    
     def reg_loss(self, *embeddings, norm=2):
         emb_loss = torch.zeros(1).to(embeddings[-1].device)
         for embedding in embeddings:
             emb_loss += torch.norm(embedding, p=norm)
         emb_loss /= embeddings[-1].shape[0]
         return emb_loss
+
+    def encode(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        allEmbds = torch.cat(
+            (self.User.embeddings.weight, self.Item.embeddings.weight), dim=0
+        )  # (N, D)
+        avgEmbds = allEmbds / (self.num_layers + 1)
+        for _ in range(self.num_layers):
+            allEmbds = self.Adj @ allEmbds
+            avgEmbds += allEmbds / (self.num_layers + 1)
+        userEmbds, itemEmbds = torch.split(avgEmbds, (self.User.count, self.Item.count))
+        return userEmbds, itemEmbds + self.Item.embeddings.weight
 
     def fit(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
         users, items = data[self.User], data[self.Item]
@@ -160,20 +166,38 @@ class BM3(freerec.models.GenRecArch):
             t_feat_online = self.predictor(t_feat_online)
             t_feat_online = t_feat_online[items, :]
             t_feat_target = t_feat_target[items, :]
-            loss_t = 1 - cosine_similarity(t_feat_online, i_target.detach(), dim=-1).mean()
-            loss_tv = 1 - cosine_similarity(t_feat_online, t_feat_target.detach(), dim=-1).mean()
+            loss_t = (
+                1 - cosine_similarity(t_feat_online, i_target.detach(), dim=-1).mean()
+            )
+            loss_tv = (
+                1
+                - cosine_similarity(
+                    t_feat_online, t_feat_target.detach(), dim=-1
+                ).mean()
+            )
         if cfg.vfile:
             v_feat_online = self.predictor(v_feat_online)
             v_feat_online = v_feat_online[items, :]
             v_feat_target = v_feat_target[items, :]
-            loss_v = 1 - cosine_similarity(v_feat_online, i_target.detach(), dim=-1).mean()
-            loss_vt = 1 - cosine_similarity(v_feat_online, v_feat_target.detach(), dim=-1).mean()
+            loss_v = (
+                1 - cosine_similarity(v_feat_online, i_target.detach(), dim=-1).mean()
+            )
+            loss_vt = (
+                1
+                - cosine_similarity(
+                    v_feat_online, v_feat_target.detach(), dim=-1
+                ).mean()
+            )
 
         loss_ui = 1 - cosine_similarity(u_online, i_target.detach(), dim=-1).mean()
         loss_iu = 1 - cosine_similarity(i_online, u_target.detach(), dim=-1).mean()
 
-        return (loss_ui + loss_iu).mean() + cfg.reg_weight * self.reg_loss(u_online_ori, i_online_ori, norm=2) + \
-               cfg.second_l * (loss_t + loss_v + loss_tv + loss_vt).mean()
+        rec_loss = (
+            (loss_ui + loss_iu).mean()
+            + cfg.reg_weight * self.reg_loss(u_online_ori, i_online_ori, norm=2)
+            + cfg.second_l * (loss_t + loss_v + loss_tv + loss_vt).mean()
+        )
+        return {"rec_loss": rec_loss}
 
     def reset_ranking_buffers(self):
         """This method will be executed before evaluation."""
@@ -184,56 +208,61 @@ class BM3(freerec.models.GenRecArch):
         self.ranking_buffer[self.Item] = itemEmbds.detach().clone()
 
     def recommend_from_full(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
-        userEmbds = self.ranking_buffer[self.User][data[self.User]] # (B, 1, D)
+        userEmbds = self.ranking_buffer[self.User][data[self.User]]  # (B, 1, D)
         itemEmbds = self.ranking_buffer[self.Item]
         return torch.einsum("BKD,ND->BN", userEmbds, itemEmbds)
 
     def recommend_from_pool(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
-        userEmbds = self.ranking_buffer[self.User][data[self.User]] # (B, 1, D)
-        itemEmbds = self.ranking_buffer[self.Item][data[self.IUnseen]] # (B, 101, D)
+        userEmbds = self.ranking_buffer[self.User][data[self.User]]  # (B, 1, D)
+        itemEmbds = self.ranking_buffer[self.Item][data[self.IUnseen]]  # (B, 101, D)
         return torch.einsum("BKD,BKD->BK", userEmbds, itemEmbds)
 
 
 class CoachForBM3(freerec.launcher.Coach):
+    """Coach for BM3 training."""
 
     def set_optimizer(self):
-        if self.cfg.optimizer.lower() == 'sgd':
+        if self.cfg.optimizer.lower() == "sgd":
             self.optimizer = torch.optim.SGD(
-                self.model.parameters(), lr=self.cfg.lr, 
+                self.model.parameters(),
+                lr=self.cfg.lr,
                 momentum=self.cfg.momentum,
                 nesterov=self.cfg.nesterov,
-                weight_decay=self.cfg.weight_decay
+                weight_decay=self.cfg.weight_decay,
             )
-        elif self.cfg.optimizer.lower() == 'adam':
+        elif self.cfg.optimizer.lower() == "adam":
             self.optimizer = torch.optim.Adam(
-                self.model.parameters(), lr=self.cfg.lr,
+                self.model.parameters(),
+                lr=self.cfg.lr,
                 betas=(self.cfg.beta1, self.cfg.beta2),
-                weight_decay=self.cfg.weight_decay
+                weight_decay=self.cfg.weight_decay,
             )
-        elif self.cfg.optimizer.lower() == 'adamw':
+        elif self.cfg.optimizer.lower() == "adamw":
             self.optimizer = torch.optim.AdamW(
-                self.model.parameters(), lr=self.cfg.lr,
+                self.model.parameters(),
+                lr=self.cfg.lr,
                 betas=(self.cfg.beta1, self.cfg.beta2),
-                weight_decay=self.cfg.weight_decay
+                weight_decay=self.cfg.weight_decay,
             )
         else:
-            raise NotImplementedError(
-                f"Unexpected optimizer {self.cfg.optimizer} ..."
-            )
+            raise NotImplementedError(f"Unexpected optimizer {self.cfg.optimizer} ...")
 
     def train_per_epoch(self, epoch: int):
         for data in self.dataloader:
             data = self.dict_to_device(data)
-            loss = self.model(data)
+            losses = self.model(data)
+            loss = losses["rec_loss"]
 
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            
+
             self.monitor(
-                loss.item(), 
-                n=len(data[self.User]), reduction="mean", 
-                mode='train', pool=['LOSS']
+                loss.item(),
+                n=len(data[self.User]),
+                reduction="mean",
+                mode="train",
+                pool=["LOSS"],
             )
 
 
@@ -242,11 +271,11 @@ def main():
     try:
         dataset = getattr(freerec.data.datasets, cfg.dataset)(root=cfg.root)
     except AttributeError:
-        dataset = freerec.data.datasets.RecDataSet(cfg.root, cfg.dataset, tasktag=cfg.tasktag)
+        dataset = freerec.data.datasets.RecDataSet(
+            cfg.root, cfg.dataset, tasktag=cfg.tasktag
+        )
 
-    model = BM3(
-        dataset
-    )
+    model = BM3(dataset)
 
     trainpipe = model.sure_trainpipe(cfg.batch_size)
     validpipe = model.sure_validpipe(cfg.ranking)
@@ -258,7 +287,7 @@ def main():
         validpipe=validpipe,
         testpipe=testpipe,
         model=model,
-        cfg=cfg
+        cfg=cfg,
     )
     coach.fit()
 

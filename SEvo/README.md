@@ -1,28 +1,66 @@
+# SEvo
 
+[[paper](https://arxiv.org/abs/2310.03032)] [[official-code](https://github.com/MTandHJ/SEvo)]
 
-
-This is an official implementation of [Graph-enhanced Optimizers for <u>S</u>tructure-aware Recommendation Embedding <u>Evo</u>lution](https://arxiv.org/abs/2310.03032) based on the latest `FreeRec`. For precise reproduction of the results reported in the paper, please refer to the [0.4.3](https://github.com/MTandHJ/SEvo) branch.
-
-
-## Requirements
-
-Python >= 3.9 | [PyTorch >=2.0](https://pytorch.org/) | [0.6.0 <= TorchData <= 0.8.0](https://github.com/pytorch/data) | [PyG >=2.3](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html#) | [FreeRec >= 0.8.7](https://github.com/MTandHJ/freerec)
-
-Refer to [here](https://github.com/MTandHJ/freerec/blob/master/dataset%20processing.md) for dataset preparation. For the [0.4.3](https://github.com/MTandHJ/SEvo/tree/0.4.3) branch, the datasets can be automatically downloaded.
+> [!NOTE]
+> This implementation only provides the scripts for SASRec. Other recommendation models can be similarly trained by modifying the baselines introduced in [RecBoard](https://github.com/MTandHJ/RecBoard).
 
 ## Usage
 
-We provide configs for the Neumann series approximation with re-scaling. You can re-run them and try some other hyperparameters:
+Run with full-ranking:
 
+    python main.py --config=configs/xxx.yaml --ranking=full
+
+or with sampled-based ranking:
+
+    python main.py --config=configs/xxx.yaml --ranking=pool
+
+## Hyperparameters
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| --maxlen | int | 50 | Maxlen |
+| --num-heads | int | 1 | Num Heads |
+| --num-blocks | int | 2 | Num Blocks |
+| --embedding-dim | int | 64 | Embedding Dim |
+| --dropout-rate | float | 0.2 | Dropout Rate |
+| --loss | str | "BCE" | Loss |
+| --aggr | str | "neumann" | Aggr |
+| --L | int | 3 | the number of layers for approximation |
+| --beta3 | float | 0.9 | the `beta` in Eq. (6) |
+| --H | int | 1 | the maximum walk length allowing for a pair of neighbors |
+| --maxlen4graph | int | 50 | only the last `maxlen` items in a sequence will be used for construciton |
+
+## Configuration Example
+
+```yaml
+# Data
+root: ../../data
+dataset: Amazon2014Beauty_550_LOU
+
+# Model
+maxlen: 50
+num_heads: 1
+num_blocks: 2
+embedding_dim: 64
+dropout_rate: 0.3
+beta1: 0.9
+beta2: 0.98
+loss: BCE
+L: 3
+aggr: neumann
+beta3: 0.99
+H: 1
+maxlen4graph: 50
+
+# Training
+epochs: 200
+batch_size: 512
+lr: 1.e-3
+weight_decay: 0.1
+optimizer: AdamWSEvo
+
+# Evaluation
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+which4best: NDCG@10
 ```
-python main.py --config=configs/xxx.yaml --optimizer=AdamWSEvo --aggr=neumann --L=3 --beta3=0.99 --H=1
-```
-
-- optimizer: AdamWSEvo|AdamW|AdamSEvo|Adam|SGDSEvo|SGD
-- aggr: neumann|iterative
-- L: the number of layers for approximation
-- beta3: $\beta$
-- H: The maximum walk length allowing for a pair of neighbors
-
-
-**Note:** This implementation only provides the scripts for SASRec. Other recommendation models can be similarly trained by modifying the baselines introduced in [RecBoard](https://github.com/MTandHJ/RecBoard).

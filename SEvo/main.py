@@ -1,15 +1,11 @@
-
-
 from typing import Dict, Tuple, Union
 
+import freerec
 import torch
 import torch.nn as nn
-import freerec
+from optims import AdamSEvo, AdamWSEvo, SGDSEvo, Smoother, get_graph
 
-import sys
-from optims import get_graph, Smoother, AdamSEvo, AdamWSEvo, SGDSEvo
-
-freerec.declare(version='0.8.7')
+freerec.declare(version="0.8.7")
 
 cfg = freerec.parser.Parser()
 cfg.add_argument("--maxlen", type=int, default=50)
@@ -17,29 +13,44 @@ cfg.add_argument("--num-heads", type=int, default=1)
 cfg.add_argument("--num-blocks", type=int, default=2)
 cfg.add_argument("--embedding-dim", type=int, default=64)
 cfg.add_argument("--dropout-rate", type=float, default=0.2)
-cfg.add_argument("--loss", type=str, choices=('BPR', 'BCE', 'CE'), default='BCE')
+cfg.add_argument("--loss", type=str, choices=("BPR", "BCE", "CE"), default="BCE")
 
-cfg.add_argument("--aggr", type=str, choices=('neumann', 'iterative'), default='neumann')
-cfg.add_argument("--L", type=int, default=3, help="the number of layers for approximation")
+cfg.add_argument(
+    "--aggr", type=str, choices=("neumann", "iterative"), default="neumann"
+)
+cfg.add_argument(
+    "--L", type=int, default=3, help="the number of layers for approximation"
+)
 cfg.add_argument("--beta3", type=float, default=0.9, help="the `beta` in Eq. (6)")
-cfg.add_argument("--H", type=int, default=1, help="the maximum walk length allowing for a pair of neighbors")
-cfg.add_argument("--maxlen4graph", type=int, default=50, help="only the last `maxlen` items in a sequence will be used for construciton")
+cfg.add_argument(
+    "--H",
+    type=int,
+    default=1,
+    help="the maximum walk length allowing for a pair of neighbors",
+)
+cfg.add_argument(
+    "--maxlen4graph",
+    type=int,
+    default=50,
+    help="only the last `maxlen` items in a sequence will be used for construciton",
+)
 
 cfg.set_defaults(
     description="SASRec",
     root="../../data",
-    dataset='Amazon2014Beauty_550_LOU',
+    dataset="Amazon2014Beauty_550_LOU",
     epochs=200,
     batch_size=256,
-    optimizer='adam',
+    optimizer="adam",
     lr=1e-3,
-    weight_decay=0.,
+    weight_decay=0.0,
     seed=1,
 )
 cfg.compile()
 
 
 class PointWiseFeedForward(nn.Module):
+    """Point-wise feed-forward network with 1D convolutions."""
 
     def __init__(self, hidden_size: int, dropout_rate: int):
         super(PointWiseFeedForward, self).__init__()
@@ -52,69 +63,71 @@ class PointWiseFeedForward(nn.Module):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         # inputs: (B, S, D)
-        outputs = self.dropout2(self.conv2(self.relu(
-            self.dropout1(self.conv1(inputs.transpose(-1, -2)))
-        ))) # -> (B, D, S)
-        outputs = outputs.transpose(-1, -2) # -> (B, S, D)
+        outputs = self.dropout2(
+            self.conv2(self.relu(self.dropout1(self.conv1(inputs.transpose(-1, -2)))))
+        )  # -> (B, D, S)
+        outputs = outputs.transpose(-1, -2)  # -> (B, S, D)
         outputs += inputs
         return outputs
 
 
 class SASRec(freerec.models.SeqRecArch):
+    """
+    item embds (graph-smoothed via SEvo optimizer) * sqrt(D) + position embds -> dropout
+    -> layer norm + causal multi-head self-attention (residual)
+    -> layer norm + point-wise FFN with Conv1d (residual) (K blocks)
+    -> layer norm -> dot product -> BCE/BPR/CE loss.
+    """
 
     def __init__(
-        self, dataset: freerec.data.datasets.RecDataSet,
-        maxlen: int = 50, embedding_dim: int = 64, 
-        dropout_rate: float = 0.2, num_blocks: int = 1, num_heads: int = 2,
+        self,
+        dataset: freerec.data.datasets.RecDataSet,
     ) -> None:
         super().__init__(dataset)
 
-        self.embedding_dim = embedding_dim
-        self.num_blocks = num_blocks
+        self.embedding_dim = cfg.embedding_dim
+        self.num_blocks = cfg.num_blocks
 
         self.Item.add_module(
-            'embeddings', nn.Embedding(
+            "embeddings",
+            nn.Embedding(
                 num_embeddings=self.Item.count + self.NUM_PADS,
-                embedding_dim=embedding_dim,
-                padding_idx=self.PADDING_VALUE
-            )
+                embedding_dim=cfg.embedding_dim,
+                padding_idx=self.PADDING_VALUE,
+            ),
         )
 
-        self.Position = nn.Embedding(maxlen, embedding_dim)
-        self.embdDropout = nn.Dropout(p=dropout_rate)
+        self.Position = nn.Embedding(cfg.maxlen, cfg.embedding_dim)
+        self.embdDropout = nn.Dropout(p=cfg.dropout_rate)
         self.register_buffer(
             "positions",
-            torch.tensor(range(0, maxlen), dtype=torch.long).unsqueeze(0)
+            torch.tensor(range(0, cfg.maxlen), dtype=torch.long).unsqueeze(0),
         )
 
-        self.attnLNs = nn.ModuleList() # to be Q for self-attention
+        self.attnLNs = nn.ModuleList()  # to be Q for self-attention
         self.attnLayers = nn.ModuleList()
         self.fwdLNs = nn.ModuleList()
         self.fwdLayers = nn.ModuleList()
 
-        self.lastLN = nn.LayerNorm(embedding_dim, eps=1e-8)
+        self.lastLN = nn.LayerNorm(cfg.embedding_dim, eps=1e-8)
 
-        for _ in range(num_blocks):
-            self.attnLNs.append(nn.LayerNorm(
-                embedding_dim, eps=1e-8
-            ))
+        for _ in range(cfg.num_blocks):
+            self.attnLNs.append(nn.LayerNorm(cfg.embedding_dim, eps=1e-8))
 
             self.attnLayers.append(
                 nn.MultiheadAttention(
-                    embed_dim=embedding_dim,
-                    num_heads=num_heads,
-                    dropout=dropout_rate,
-                    batch_first=True # !!!
+                    embed_dim=cfg.embedding_dim,
+                    num_heads=cfg.num_heads,
+                    dropout=cfg.dropout_rate,
+                    batch_first=True,  # !!!
                 )
             )
 
-            self.fwdLNs.append(nn.LayerNorm(
-                embedding_dim, eps=1e-8
-            ))
+            self.fwdLNs.append(nn.LayerNorm(cfg.embedding_dim, eps=1e-8))
 
-            self.fwdLayers.append(PointWiseFeedForward(
-                embedding_dim, dropout_rate
-            ))
+            self.fwdLayers.append(
+                PointWiseFeedForward(cfg.embedding_dim, cfg.dropout_rate)
+            )
 
         # False True  True ...
         # False False True ...
@@ -122,16 +135,16 @@ class SASRec(freerec.models.SeqRecArch):
         # ....
         # True indices that the corresponding position is not allowed to attend !
         self.register_buffer(
-            'attnMask',
-            torch.ones((maxlen, maxlen), dtype=torch.bool).triu(diagonal=1)
+            "attnMask",
+            torch.ones((cfg.maxlen, cfg.maxlen), dtype=torch.bool).triu(diagonal=1),
         )
 
-        if cfg.loss == 'BCE':
-            self.criterion = freerec.criterions.BCELoss4Logits(reduction='mean')
-        elif cfg.loss == 'BPR':
-            self.criterion = freerec.criterions.BPRLoss(reduction='mean')
-        elif cfg.loss == 'CE':
-            self.criterion = freerec.criterions.CrossEntropy4Logits(reduction='mean')
+        if cfg.loss == "BCE":
+            self.criterion = freerec.criterions.BCELoss4Logits(reduction="mean")
+        elif cfg.loss == "BPR":
+            self.criterion = freerec.criterions.BPRLoss(reduction="mean")
+        elif cfg.loss == "CE":
+            self.criterion = freerec.criterions.CrossEntropy4Logits(reduction="mean")
 
         self.reset_parameters()
 
@@ -141,180 +154,196 @@ class SASRec(freerec.models.SeqRecArch):
             if isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
                 if m.bias is not None:
-                    nn.init.constant_(m.bias, 0.)
+                    nn.init.constant_(m.bias, 0.0)
             elif isinstance(m, nn.Embedding):
                 nn.init.xavier_normal_(m.weight)
             elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
-                nn.init.constant_(m.weight, 1.)
-                nn.init.constant_(m.bias, 0.)
+                nn.init.constant_(m.weight, 1.0)
+                nn.init.constant_(m.bias, 0.0)
+
+    def sure_trainpipe(self, maxlen: int, batch_size: int):
+        return (
+            self.dataset.train()
+            .shuffled_seqs_source(maxlen=maxlen)
+            .seq_train_yielding_pos_(start_idx_for_target=1, end_idx_for_input=-1)
+            .seq_train_sampling_neg_(num_negatives=1)
+            .add_(offset=self.NUM_PADS, modified_fields=(self.ISeq,))
+            .lpad_(
+                maxlen,
+                modified_fields=(self.ISeq, self.IPos, self.INeg),
+                padding_value=self.PADDING_VALUE,
+            )
+            .batch_(batch_size)
+            .tensor_()
+        )
 
     def marked_params(self):
         smooth_params = [self.Item.embeddings.weight]
         recorded = [id(param) for param in smooth_params]
-        regular_params = [param for param in self.parameters() if id(param) not in recorded]
+        regular_params = [
+            param for param in self.parameters() if id(param) not in recorded
+        ]
         return [
-            {'params': regular_params},
+            {"params": regular_params},
             {
-                'params': smooth_params, 
-                'smoother': Smoother(
+                "params": smooth_params,
+                "smoother": Smoother(
                     Adj=get_graph(cfg, self.dataset, self.NUM_PADS).to(cfg.device),
-                    beta=cfg.beta3, L=cfg.L, aggr=cfg.aggr
-                )
-            }
+                    beta=cfg.beta3,
+                    L=cfg.L,
+                    aggr=cfg.aggr,
+                ),
+            },
         ]
 
-    def sure_trainpipe(self, maxlen: int, batch_size: int):
-        return self.dataset.train().shuffled_seqs_source(
-           maxlen=maxlen 
-        ).seq_train_yielding_pos_(
-            start_idx_for_target=1, end_idx_for_input=-1
-        ).seq_train_sampling_neg_(
-            num_negatives=1
-        ).add_(
-            offset=self.NUM_PADS, modified_fields=(self.ISeq,)
-        ).lpad_(
-            maxlen, modified_fields=(self.ISeq, self.IPos, self.INeg),
-            padding_value=self.PADDING_VALUE
-        ).batch_(batch_size).tensor_()
-
     def mark_position(self, seqs: torch.Tensor):
-        positions = self.Position(self.positions) # (1, maxlen, D)
+        positions = self.Position(self.positions)  # (1, maxlen, D)
         return seqs + positions
 
     def after_one_block(self, seqs: torch.Tensor, padding_mask: torch.Tensor, l: int):
         # inputs: (B, S, D)
         Q = self.attnLNs[l](seqs)
-        seqs = self.attnLayers[l](
-            Q, seqs, seqs, 
-            attn_mask=self.attnMask,
-            need_weights=False
-        )[0] + seqs
+        seqs = (
+            self.attnLayers[l](
+                Q, seqs, seqs, attn_mask=self.attnMask, need_weights=False
+            )[0]
+            + seqs
+        )
 
         seqs = self.fwdLNs[l](seqs)
         seqs = self.fwdLayers[l](seqs)
 
-        return seqs.masked_fill(padding_mask, 0.)
-    
+        return seqs.masked_fill(padding_mask, 0.0)
+
     def encode(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         seqs = data[self.ISeq]
         padding_mask = (seqs == self.PADDING_VALUE).unsqueeze(-1)
-        seqs = self.Item.embeddings(seqs) # (B, S) -> (B, S, D)
-        seqs *= self.embedding_dim ** 0.5
+        seqs = self.Item.embeddings(seqs)  # (B, S) -> (B, S, D)
+        seqs *= self.embedding_dim**0.5
         seqs = self.embdDropout(self.mark_position(seqs))
-        seqs.masked_fill_(padding_mask, 0.)
+        seqs.masked_fill_(padding_mask, 0.0)
 
         for l in range(self.num_blocks):
             seqs = self.after_one_block(seqs, padding_mask, l)
-        
-        userEmbds = self.lastLN(seqs) # (B, S, D)
 
-        return userEmbds, self.Item.embeddings.weight[self.NUM_PADS:]
+        userEmbds = self.lastLN(seqs)  # (B, S, D)
+
+        return userEmbds, self.Item.embeddings.weight[self.NUM_PADS :]
 
     def fit(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
         userEmbds, itemEmbds = self.encode(data)
         indices = data[self.ISeq] != self.PADDING_VALUE
-        userEmbds = userEmbds[indices] # (M, D)
+        userEmbds = userEmbds[indices]  # (M, D)
 
-        if cfg.loss in ('BCE', 'BPR'):
-            posEmbds = itemEmbds[data[self.IPos][indices]] # (M, D)
-            negEmbds = itemEmbds[data[self.INeg][indices]] # (M, D)
-            posLogits = torch.einsum("MD,MD->M", userEmbds, posEmbds) # (M,)
-            negLogits = torch.einsum("MD,MD->M", userEmbds, negEmbds) # (M,)
+        if cfg.loss in ("BCE", "BPR"):
+            posEmbds = itemEmbds[data[self.IPos][indices]]  # (M, D)
+            negEmbds = itemEmbds[data[self.INeg][indices]]  # (M, D)
+            posLogits = torch.einsum("MD,MD->M", userEmbds, posEmbds)  # (M,)
+            negLogits = torch.einsum("MD,MD->M", userEmbds, negEmbds)  # (M,)
 
-            if cfg.loss == 'BCE':
+            if cfg.loss == "BCE":
                 posLabels = torch.ones_like(posLogits)
                 negLabels = torch.zeros_like(negLogits)
-                rec_loss = self.criterion(posLogits, posLabels) + \
-                    self.criterion(negLogits, negLabels)
-            elif cfg.loss == 'BPR':
+                rec_loss = self.criterion(posLogits, posLabels) + self.criterion(
+                    negLogits, negLabels
+                )
+            elif cfg.loss == "BPR":
                 rec_loss = self.criterion(posLogits, negLogits)
-        elif cfg.loss == 'CE':
-            logits = torch.einsum("MD,ND->MN", userEmbds, itemEmbds) # (M, N)
-            labels = data[self.IPos][indices] # (M,)
+        elif cfg.loss == "CE":
+            logits = torch.einsum("MD,ND->MN", userEmbds, itemEmbds)  # (M, N)
+            labels = data[self.IPos][indices]  # (M,)
             rec_loss = self.criterion(logits, labels)
 
-        return rec_loss
+        return {"rec_loss": rec_loss}
 
     def recommend_from_full(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> torch.Tensor:
         userEmbds, itemEmbds = self.encode(data)
-        userEmbds = userEmbds[:, -1, :] # (B, D)
+        userEmbds = userEmbds[:, -1, :]  # (B, D)
         return torch.einsum("BD,ND->BN", userEmbds, itemEmbds)
 
     def recommend_from_pool(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> torch.Tensor:
         userEmbds, itemEmbds = self.encode(data)
-        userEmbds = userEmbds[:, -1, :] # (B, D)
-        itemEmbds = itemEmbds[data[self.IUnseen]] # (B, K, D)
+        userEmbds = userEmbds[:, -1, :]  # (B, D)
+        itemEmbds = itemEmbds[data[self.IUnseen]]  # (B, K, D)
         return torch.einsum("BD,BKD->BK", userEmbds, itemEmbds)
 
 
 class CoachForSASRec(freerec.launcher.Coach):
+    """Coach for SASRec with SEvo training."""
 
     def set_optimizer(self):
         marked_params = self.model.marked_params()
-        if self.cfg.optimizer.lower() == 'sgd':
+        if self.cfg.optimizer.lower() == "sgd":
             self.optimizer = torch.optim.SGD(
-                self.model.parameters(), lr=self.cfg.lr, 
+                self.model.parameters(),
+                lr=self.cfg.lr,
                 momentum=self.cfg.momentum,
                 nesterov=self.cfg.nesterov,
-                weight_decay=self.cfg.weight_decay
+                weight_decay=self.cfg.weight_decay,
             )
-        elif self.cfg.optimizer.lower() == 'adam':
+        elif self.cfg.optimizer.lower() == "adam":
             self.optimizer = torch.optim.Adam(
-                self.model.parameters(), lr=self.cfg.lr,
+                self.model.parameters(),
+                lr=self.cfg.lr,
                 betas=(self.cfg.beta1, self.cfg.beta2),
-                weight_decay=self.cfg.weight_decay
+                weight_decay=self.cfg.weight_decay,
             )
-        elif self.cfg.optimizer.lower() == 'adamw':
+        elif self.cfg.optimizer.lower() == "adamw":
             self.optimizer = torch.optim.AdamW(
-                self.model.parameters(), lr=self.cfg.lr,
+                self.model.parameters(),
+                lr=self.cfg.lr,
                 betas=(self.cfg.beta1, self.cfg.beta2),
-                weight_decay=self.cfg.weight_decay
+                weight_decay=self.cfg.weight_decay,
             )
-        elif self.cfg.optimizer.lower() == 'adamsevo':
+        elif self.cfg.optimizer.lower() == "adamsevo":
             self.optimizer = AdamSEvo(
-                marked_params, lr=cfg.lr,
+                marked_params,
+                lr=cfg.lr,
                 betas=(self.cfg.beta1, self.cfg.beta2),
-                weight_decay=self.cfg.weight_decay
+                weight_decay=self.cfg.weight_decay,
             )
-        elif self.cfg.optimizer.lower() == 'adamwsevo':
+        elif self.cfg.optimizer.lower() == "adamwsevo":
             self.optimizer = AdamWSEvo(
-                marked_params, lr=cfg.lr,
+                marked_params,
+                lr=cfg.lr,
                 betas=(self.cfg.beta1, self.cfg.beta2),
-                weight_decay=self.cfg.weight_decay
+                weight_decay=self.cfg.weight_decay,
             )
-        elif self.cfg.optimizer.lower() == 'sgdsevo':
+        elif self.cfg.optimizer.lower() == "sgdsevo":
             self.optimizer = SGDSEvo(
-                marked_params, lr=cfg.lr,
+                marked_params,
+                lr=cfg.lr,
                 momentum=cfg.momentum,
                 nesterov=cfg.nesterov,
-                weight_decay=cfg.weight_decay
+                weight_decay=cfg.weight_decay,
             )
         else:
-            raise NotImplementedError(
-                f"Unexpected optimizer {self.cfg.optimizer} ..."
-            )
+            raise NotImplementedError(f"Unexpected optimizer {self.cfg.optimizer} ...")
 
     def train_per_epoch(self, epoch: int):
         for data in self.dataloader:
             data = self.dict_to_device(data)
-            loss = self.model(data)
+            losses = self.model(data)
+            loss = losses["rec_loss"]
 
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-           
+
             self.monitor(
-                loss.item(), 
-                n=len(data[self.User]), reduction="mean", 
-                mode='train', pool=['LOSS']
+                loss.item(),
+                n=len(data[self.User]),
+                reduction="mean",
+                mode="train",
+                pool=["LOSS"],
             )
 
 
@@ -324,13 +353,11 @@ def main():
     try:
         dataset = getattr(freerec.data.datasets, cfg.dataset)(root=cfg.root)
     except AttributeError:
-        dataset = freerec.data.datasets.RecDataSet(cfg.root, cfg.dataset, tasktag=cfg.tasktag)
+        dataset = freerec.data.datasets.RecDataSet(
+            cfg.root, cfg.dataset, tasktag=cfg.tasktag
+        )
 
-    model = SASRec(
-        dataset, maxlen=cfg.maxlen, 
-        embedding_dim=cfg.embedding_dim, dropout_rate=cfg.dropout_rate,
-        num_blocks=cfg.num_blocks, num_heads=cfg.num_heads,
-    )
+    model = SASRec(dataset)
 
     # datapipe
     trainpipe = model.sure_trainpipe(cfg.maxlen, cfg.batch_size)
@@ -343,7 +370,7 @@ def main():
         validpipe=validpipe,
         testpipe=testpipe,
         model=model,
-        cfg=cfg
+        cfg=cfg,
     )
     coach.fit()
 
