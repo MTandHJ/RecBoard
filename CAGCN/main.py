@@ -206,22 +206,22 @@ class CoachForCAGCN(freerec.launcher.Coach):
             self.optimizer = torch.optim.SGD(
                 self.model.parameters(),
                 lr=self.cfg.lr,
-                momentum=self.cfg.momentum,
-                nesterov=self.cfg.nesterov,
+                momentum=self.cfg.sgd_momentum,
+                nesterov=self.cfg.sgd_nesterov,
                 # weight_decay=self.cfg.weight_decay
             )
         elif self.cfg.optimizer.lower() == "adam":
             self.optimizer = torch.optim.Adam(
                 self.model.parameters(),
                 lr=self.cfg.lr,
-                betas=(self.cfg.beta1, self.cfg.beta2),
+                betas=(self.cfg.adam_beta1, self.cfg.adam_beta2),
                 # weight_decay=self.cfg.weight_decay
             )
         elif self.cfg.optimizer.lower() == "adamw":
             self.optimizer = torch.optim.AdamW(
                 self.model.parameters(),
                 lr=self.cfg.lr,
-                betas=(self.cfg.beta1, self.cfg.beta2),
+                betas=(self.cfg.adam_beta1, self.cfg.adam_beta2),
                 # weight_decay=self.cfg.weight_decay
             )
         else:
