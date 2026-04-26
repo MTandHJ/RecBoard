@@ -7,8 +7,8 @@ maxlen: 50
 num_blocks: 1
 num_heads: 4
 embedding_dim: 64
-attn_dropout_rate: 0.1
-hidden_dropout_rate: 0.3
+attn_dropout_rate: 0.5
+hidden_dropout_rate: 0.2
 pvn_weight: 0.001
 distance_metric: wasserstein
 
@@ -16,8 +16,8 @@ distance_metric: wasserstein
 epochs: 500
 batch_size: 512
 optimizer: adam
-lr: 1.e-3
-weight_decay: 0.
+lr: 5.e-4
+weight_decay: 1.e-6
 
 # Evaluation
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, HitRate@50, NDCG@5, NDCG@10, NDCG@20, NDCG@50]

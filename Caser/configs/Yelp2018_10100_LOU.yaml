@@ -1,15 +1,15 @@
 # Data
 root: ../../data
-dataset: Amazon2014Beauty_550_LOU
+dataset: Yelp2018_10100_LOU
 
 # Model
-maxlen: 50
+maxlen: 5
 embedding_dim: 64
-num_blocks: 4
-num_heads: 2
-hidden_act: gelu
-hidden_dropout_rate: 0.2
-loss: BPR
+num_vert: 4
+num_horiz: 16
+dropout_rate: 0.3
+num_poss: 3
+num_negs: 2
 
 # Training
 epochs: 300

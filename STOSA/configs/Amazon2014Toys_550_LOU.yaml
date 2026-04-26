@@ -7,8 +7,8 @@ maxlen: 50
 num_blocks: 1
 num_heads: 4
 embedding_dim: 64
-attn_dropout_rate: 0.6
-hidden_dropout_rate: 0.4
+attn_dropout_rate: 0.2
+hidden_dropout_rate: 0.2
 pvn_weight: 0.001
 distance_metric: wasserstein
 

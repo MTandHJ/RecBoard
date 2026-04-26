@@ -1,20 +1,20 @@
 # Data
 root: ../../data
-dataset: Amazon2014Beauty_550_LOU
+dataset: Amazon2014Toys_550_LOU
 
 # Model
 maxlen: 50
 num_heads: 1
 num_blocks: 2
 embedding_dim: 64
-dropout_rate: 0.5
+dropout_rate: 0.3
 loss: BCE
 
 # Training
 epochs: 300
 batch_size: 512
 optimizer: adam
-lr: 1.e-3
+lr: 5.e-4
 weight_decay: 0.
 
 # Evaluation

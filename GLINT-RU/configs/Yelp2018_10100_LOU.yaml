@@ -1,0 +1,25 @@
+# Data
+root: ../../data
+dataset: Yelp2018_10100_LOU
+
+# Model
+maxlen: 50
+num_heads: 8
+num_layers: 1
+embedding_dim: 128
+hidden_size: 128
+emb_dropout_rate: 0.3
+hidden_dropout_rate: 0.1
+attn_dropout_rate: 0.
+loss: BCE
+
+# Training
+epochs: 200
+batch_size: 2048
+optimizer: Adam
+lr: 1.e-4
+weight_decay: 1.e-4
+
+# Evaluation
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, HitRate@50, NDCG@5, NDCG@10, NDCG@20, NDCG@50]
+which4best: NDCG@10

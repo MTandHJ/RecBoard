@@ -1,15 +1,14 @@
 # Data
 root: ../../data
-dataset: Amazon2014Beauty_550_LOU
+dataset: Amazon2014Sports_550_LOU
 
 # Model
 maxlen: 50
+num_heads: 1
+num_blocks: 2
 embedding_dim: 64
-num_blocks: 4
-num_heads: 2
-hidden_act: gelu
-hidden_dropout_rate: 0.2
-loss: BPR
+dropout_rate: 0.3
+loss: BCE
 
 # Training
 epochs: 300

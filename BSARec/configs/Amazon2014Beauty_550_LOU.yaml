@@ -9,7 +9,7 @@ num_blocks: 2
 num_heads: 1
 hidden_act: gelu
 hidden_dropout_rate: 0.5
-attn_dropout_rate: 0.5
+attn_dropout_rate: 0.
 loss: CE
 alpha: 0.7
 c: 5
