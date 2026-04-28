@@ -3,6 +3,7 @@
     {
     "description": "",
     "dataset": "Yelp2018_10100_LOU",
+    "tags": ["Sequential", "BCE", "128"],
     "runs": [
         {
         "id": "0428081309",

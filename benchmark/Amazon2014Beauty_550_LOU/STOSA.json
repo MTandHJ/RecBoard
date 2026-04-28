@@ -3,7 +3,7 @@
     {
     "description": "",
     "dataset": "Amazon2014Beauty_550_LOU",
-    "tags": ["Sequential", "Pair", "128"],
+    "tags": ["Sequential", "BCE", "128"],
     "runs": [
         {
         "id": "0427003720",

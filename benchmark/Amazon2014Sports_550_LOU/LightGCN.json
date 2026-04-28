@@ -3,6 +3,7 @@
     {
     "description": "",
     "dataset": "Amazon2014Sports_550_LOU",
+    "tags": ["Graph", "BPR", "64"],
     "runs": [
         {
         "id": "0427185704",

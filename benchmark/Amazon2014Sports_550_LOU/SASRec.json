@@ -3,6 +3,7 @@
     {
     "description": "",
     "dataset": "Amazon2014Sports_550_LOU",
+    "tags": ["Sequential", "BCE", "64"],
     "runs": [
         {
         "id": "0428030500",

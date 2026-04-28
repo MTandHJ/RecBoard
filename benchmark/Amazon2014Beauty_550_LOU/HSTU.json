@@ -1,9 +1,9 @@
 [
 
     {
-    "description": "Sampled CE",
+    "description": "",
     "dataset": "Amazon2014Beauty_550_LOU",
-    "tags": ["Sequential", "CE", "64"],
+    "tags": ["Sequential", "InfoNCE", "64"],
     "runs": [
         {
         "id": "0426220214",

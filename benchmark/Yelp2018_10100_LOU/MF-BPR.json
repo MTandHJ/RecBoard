@@ -3,6 +3,7 @@
     {
     "description": "",
     "dataset": "Yelp2018_10100_LOU",
+    "tags": ["BPR", "64"],
     "runs": [
         {
         "id": "0427224736",

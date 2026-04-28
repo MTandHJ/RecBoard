@@ -2,7 +2,7 @@
   "description": "Amazon 2014 Sports & Outdoors product reviews (5-core, leave-one-out split)",
   "build_command": "freerec make Amazon2014Sports --root . --kcore4user 5 --kcore4item 5 --splitting LOU",
   "sort_by": "NDCG@10",
-  "core_metrics": ["NDCG@10", "NDCG@20", "HITRATE@10", "HITRATE@20"],
+  "core_metrics": ["HITRATE@1", "HITRATE@10", "HITRATE@20", "NDCG@10", "NDCG@20"],
   "statistics": {
     "#Users": 35598,
     "#Items": 18357,

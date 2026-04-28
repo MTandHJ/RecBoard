@@ -3,6 +3,7 @@
     {
     "description": "",
     "dataset": "Amazon2014Toys_550_LOU",
+    "tags": ["BPR", "64"],
     "runs": [
         {
         "id": "0426234841",

@@ -3,6 +3,7 @@
     {
     "description": "",
     "dataset": "Amazon2014Toys_550_LOU",
+    "tags": ["Sequential", "InfoNCE", "64"],
     "runs": [
         {
         "id": "0426222705",

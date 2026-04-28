@@ -3,6 +3,7 @@
     {
     "description": "",
     "dataset": "Amazon2014Sports_550_LOU",
+    "tags": ["Sequential", "InfoNCE", "64"],
     "runs": [
         {
         "id": "0427180920",
