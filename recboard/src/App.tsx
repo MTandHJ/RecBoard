@@ -5,6 +5,7 @@ import DatasetInfo from "./components/DatasetInfo";
 import TagFilter from "./components/TagFilter";
 import LeaderboardTable from "./components/LeaderboardTable";
 import { results, datasetMetas } from "./data/results";
+import colors from "./theme";
 
 const { Title } = Typography;
 
@@ -41,22 +42,34 @@ function App() {
   return (
     <ConfigProvider
       theme={{
+        token: {
+          colorPrimary: colors.accent,
+          colorBorder: colors.border,
+          colorBgContainer: colors.bgCard,
+          colorText: colors.textPrimary,
+        },
         components: {
           Table: {
             cellPaddingBlock: 10,
             cellPaddingInline: 12,
-            borderColor: "#EBE3DB",
+            borderColor: colors.border,
+            headerBg: colors.bgHeader,
+            headerColor: colors.textInverse,
+            headerSortActiveBg: colors.bgHeader,
+            headerSortHoverBg: "#5a7284",
+            headerFilterHoverBg: "#5a7284",
           },
         },
       }}
     >
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "32px 24px" }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "32px 24px", backgroundColor: colors.bgPage, minHeight: "100vh" }}>
         <Title
           level={1}
           style={{
             textAlign: "center",
             marginBottom: 28,
             fontSize: 36,
+            color: colors.textPrimary,
           }}
         >
           🏆 RecBoard

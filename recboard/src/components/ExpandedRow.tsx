@@ -1,5 +1,6 @@
 import { Descriptions, Table } from "antd";
 import type { AggregatedResult } from "../types";
+import colors from "../theme";
 
 interface ExpandedRowProps {
   record: AggregatedResult;
@@ -35,7 +36,7 @@ function ExpandedRow({ record }: ExpandedRowProps) {
 
   return (
     <div style={{ padding: "0 16px" }}>
-      <h4 style={{ marginTop: 0 }}>Results per Seed</h4>
+      <h4 style={{ marginTop: 0, color: colors.textPrimary }}>Results per Seed</h4>
       <Table
         columns={seedColumns}
         dataSource={seedData}
@@ -46,12 +47,12 @@ function ExpandedRow({ record }: ExpandedRowProps) {
       />
       {configEntries.length > 0 && (
         <>
-          <h4>Config</h4>
+          <h4 style={{ color: colors.textPrimary }}>Config</h4>
           <Descriptions
             size="small"
             bordered
             column={3}
-            styles={{ label: { backgroundColor: "#CBAF86", fontWeight: 500, color: "#fff" } }}
+            styles={{ label: { backgroundColor: colors.bgHeader, fontWeight: 500, color: colors.textInverse } }}
           >
             {configEntries.map(([key, value]) => (
               <Descriptions.Item key={key} label={key}>

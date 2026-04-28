@@ -3,6 +3,7 @@ import { Button, Flex, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { AggregatedResult, DatasetMeta, MetricStat } from "../types";
 import ExpandedRow from "./ExpandedRow";
+import colors from "../theme";
 
 interface LeaderboardTableProps {
   data: AggregatedResult[];
@@ -53,25 +54,14 @@ function getBestPerMetric(
   return best;
 }
 
-const TAG_COLOR = "#3E5A63";
-
 const tagStyle: React.CSSProperties = {
   backgroundColor: "transparent",
-  color: TAG_COLOR,
-  border: `1px solid ${TAG_COLOR}`,
+  color: colors.tag,
+  border: `1px solid ${colors.tag}`,
   margin: 0,
 };
 
-const headerStyle: React.CSSProperties = {
-  backgroundColor: "#669C69",
-  fontWeight: "bold",
-  color: "#fff",
-};
-
-const headerCellProps = { style: headerStyle };
-const onHeaderCell = () => headerCellProps;
-
-const bestCellProps = { style: { backgroundColor: "#fffbe6" } };
+const bestCellProps = { style: { backgroundColor: colors.bgHighlight } };
 const emptyCellProps = {};
 
 const getRowKey = (record: AggregatedResult) =>
@@ -109,8 +99,12 @@ function LeaderboardTable({ data, meta }: LeaderboardTableProps) {
       fixed: "left",
       width: 140,
       align: "center",
-      onHeaderCell,
       sorter: (a, b) => a.model.localeCompare(b.model),
+      render: (model: string) => (
+        <a href={`https://github.com/MTandHJ/RecBoard/tree/master/${model}`} target="_blank" rel="noopener noreferrer">
+          {model}
+        </a>
+      ),
     },
     {
       title: "Description",
@@ -119,7 +113,6 @@ function LeaderboardTable({ data, meta }: LeaderboardTableProps) {
       ellipsis: true,
       width: 200,
       align: "center",
-      onHeaderCell,
     },
     {
       title: "Tags",
@@ -127,7 +120,6 @@ function LeaderboardTable({ data, meta }: LeaderboardTableProps) {
       key: "tags",
       width: 150,
       align: "center",
-      onHeaderCell,
       render: (tags: string[]) => (
         <Flex gap={6} wrap="wrap" justify="center">
           {tags.map((tag) => (
@@ -143,7 +135,6 @@ function LeaderboardTable({ data, meta }: LeaderboardTableProps) {
       key,
       width: 180,
       align: "center" as const,
-      onHeaderCell,
       sorter: (a: AggregatedResult, b: AggregatedResult) =>
         (a.bestMetrics[key]?.mean ?? 0) - (b.bestMetrics[key]?.mean ?? 0),
       defaultSortOrder:
@@ -168,7 +159,7 @@ function LeaderboardTable({ data, meta }: LeaderboardTableProps) {
           </Button>
         </div>
       )}
-      <div style={{ border: "3px solid #EBE3DB", borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `2px solid ${colors.border}`, borderRadius: 8, overflow: "hidden" }}>
         <Table
           columns={columns}
           dataSource={data}

@@ -1,5 +1,6 @@
 import { Card, Flex, Statistic } from "antd";
 import type { DatasetMeta } from "../types";
+import colors from "../theme";
 
 interface DatasetInfoProps {
   meta: DatasetMeta;
@@ -11,11 +12,11 @@ function DatasetInfo({ meta }: DatasetInfoProps) {
   return (
     <Card
       size="small"
-      style={{ marginBottom: 16, borderColor: "#e8e8e8" }}
+      style={{ marginBottom: 16, borderColor: colors.border }}
       styles={{ body: { padding: "16px 20px" } }}
     >
       {meta.description && (
-        <div style={{ marginBottom: 14, color: "#555", fontSize: 14 }}>
+        <div style={{ marginBottom: 14, color: colors.textSecondary, fontSize: 14 }}>
           {meta.description}
         </div>
       )}
@@ -27,16 +28,16 @@ function DatasetInfo({ meta }: DatasetInfoProps) {
               key={key}
               size="small"
               style={{
-                backgroundColor: "#f7f8fa",
-                borderColor: "#eee",
+                backgroundColor: colors.bgStat,
+                borderColor: colors.borderStat,
                 minWidth: 130,
               }}
               styles={{ body: { padding: "10px 16px" } }}
             >
               <Statistic
-                title={<span style={{ fontSize: 12, color: "#888" }}>{key}</span>}
+                title={<span style={{ fontSize: 12, color: colors.textTertiary }}>{key}</span>}
                 value={value}
-                valueStyle={{ fontSize: 20, fontWeight: 600, color: "#333" }}
+                valueStyle={{ fontSize: 20, fontWeight: 600, color: colors.textPrimary }}
               />
             </Card>
           ))}
@@ -46,16 +47,16 @@ function DatasetInfo({ meta }: DatasetInfoProps) {
       {meta.build_command && (
         <div
           style={{
-            backgroundColor: "#1e1e2e",
+            backgroundColor: colors.bgCode,
             borderRadius: 6,
             padding: "10px 16px",
             fontFamily: "'Menlo', 'Consolas', 'Courier New', monospace",
             fontSize: 13,
-            color: "#cdd6f4",
+            color: colors.textCode,
             overflowX: "auto",
           }}
         >
-          <span style={{ color: "#a6e3a1" }}>$</span>{" "}
+          <span style={{ color: colors.accentGreen }}>$</span>{" "}
           {meta.build_command}
         </div>
       )}
