@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from "fs";
+import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, mkdir} from "fs";
 import { join, basename, resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -66,6 +66,7 @@ function aggregateRuns(runs) {
 }
 
 function main() {
+  mkdirSync(dirname(OUTPUT_FILE), { recursive: true });
   if (!existsSync(BENCHMARK_DIR)) {
     console.log("No benchmark/ directory found, generating empty data.");
     writeFileSync(
