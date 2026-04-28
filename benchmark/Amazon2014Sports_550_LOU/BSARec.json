@@ -1,0 +1,309 @@
+[
+
+    {
+    "description": "",
+    "dataset": "Amazon2014Sports_550_LOU",
+    "runs": [
+        {
+        "id": "0427095829",
+        "params": {
+            "config": "configs/Amazon2014Sports_550_LOU.yaml",
+            "seed": 0
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 6.802886160346981
+            },
+            "valid": {
+            "HITRATE@1": 0.020422495652127892,
+            "HITRATE@5": 0.05298050453612105,
+            "HITRATE@10": 0.07576268329137269,
+            "HITRATE@20": 0.10739367380775931,
+            "HITRATE@50": 0.1627900443552143,
+            "NDCG@5": 0.03661085713971424,
+            "NDCG@10": 0.04406864272079024,
+            "NDCG@20": 0.05153417825754107,
+            "NDCG@50": 0.06245963638689727
+            },
+            "test": {
+            "HITRATE@1": 0.014691836627046307,
+            "HITRATE@5": 0.04101354009321924,
+            "HITRATE@10": 0.05938535876025028,
+            "HITRATE@20": 0.08559469633585912,
+            "HITRATE@50": 0.1328164504084254,
+            "NDCG@5": 0.028124780504175186,
+            "NDCG@10": 0.034028427777817644,
+            "NDCG@20": 0.04061610319822921,
+            "NDCG@50": 0.049943736094599046
+            },
+            "best": {
+            "HITRATE@1": 0.01561885499590862,
+            "HITRATE@5": 0.04219338165295681,
+            "HITRATE@10": 0.06028428564333813,
+            "HITRATE@20": 0.08674644643250487,
+            "HITRATE@50": 0.134642395641251,
+            "NDCG@5": 0.029103540930003505,
+            "NDCG@10": 0.034926716249667,
+            "NDCG@20": 0.04159630604117189,
+            "NDCG@50": 0.05104799065229276
+            }
+        }
+        },
+        {
+        "id": "0427095830",
+        "params": {
+            "config": "configs/Amazon2014Sports_550_LOU.yaml",
+            "seed": 1
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 6.787499326542454
+            },
+            "valid": {
+            "HITRATE@1": 0.020534861508341003,
+            "HITRATE@5": 0.05278386427668803,
+            "HITRATE@10": 0.07548176866673346,
+            "HITRATE@20": 0.1055958200794665,
+            "HITRATE@50": 0.16228439801244549,
+            "NDCG@5": 0.036863134505419864,
+            "NDCG@10": 0.04370861738326644,
+            "NDCG@20": 0.051330649743373695,
+            "NDCG@50": 0.06242769374824775
+            },
+            "test": {
+            "HITRATE@1": 0.015281757408798769,
+            "HITRATE@5": 0.041743918214186077,
+            "HITRATE@10": 0.06000337099400178,
+            "HITRATE@20": 0.08551042197274589,
+            "HITRATE@50": 0.13351873708053266,
+            "NDCG@5": 0.028678656809642693,
+            "NDCG@10": 0.03457063422223609,
+            "NDCG@20": 0.04098778025299115,
+            "NDCG@50": 0.05045616123619153
+            },
+            "best": {
+            "HITRATE@1": 0.01514130007798247,
+            "HITRATE@5": 0.04241811337234217,
+            "HITRATE@10": 0.06112702959773078,
+            "HITRATE@20": 0.0859879768865384,
+            "HITRATE@50": 0.13360301143213452,
+            "NDCG@5": 0.028921699272894084,
+            "NDCG@10": 0.034911215855362804,
+            "NDCG@20": 0.041153178683259364,
+            "NDCG@50": 0.05052949436100184
+            }
+        }
+        },
+        {
+        "id": "0427095831",
+        "params": {
+            "config": "configs/Amazon2014Sports_550_LOU.yaml",
+            "seed": 2
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 6.810369160900912
+            },
+            "valid": {
+            "HITRATE@1": 0.020113489530490622,
+            "HITRATE@5": 0.052868138649952205,
+            "HITRATE@10": 0.07444238439733925,
+            "HITRATE@20": 0.10444406995268188,
+            "HITRATE@50": 0.16014944660900698,
+            "NDCG@5": 0.036410970937667236,
+            "NDCG@10": 0.0432016054439698,
+            "NDCG@20": 0.050659171012004435,
+            "NDCG@50": 0.06181129187289413
+            },
+            "test": {
+            "HITRATE@1": 0.015225574484603465,
+            "HITRATE@5": 0.040423619315966684,
+            "HITRATE@10": 0.05882352941940407,
+            "HITRATE@20": 0.08458340357497432,
+            "HITRATE@50": 0.13309736505232003,
+            "NDCG@5": 0.0279971963899021,
+            "NDCG@10": 0.0339487950287789,
+            "NDCG@20": 0.04043662290576653,
+            "NDCG@50": 0.04998510926775624
+            },
+            "best": {
+            "HITRATE@1": 0.015225574484603465,
+            "HITRATE@5": 0.040423619315966684,
+            "HITRATE@10": 0.05882352941940407,
+            "HITRATE@20": 0.08458340357497432,
+            "HITRATE@50": 0.13309736505232003,
+            "NDCG@5": 0.0279971963899021,
+            "NDCG@10": 0.0339487950287789,
+            "NDCG@20": 0.04043662290576653,
+            "NDCG@50": 0.04998510926775624
+            }
+        }
+        },
+        {
+        "id": "0427095832",
+        "params": {
+            "config": "configs/Amazon2014Sports_550_LOU.yaml",
+            "seed": 3
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 6.803803014086186
+            },
+            "valid": {
+            "HITRATE@1": 0.020197763922565424,
+            "HITRATE@5": 0.052783864270409105,
+            "HITRATE@10": 0.07463902466556277,
+            "HITRATE@20": 0.10573627733318275,
+            "HITRATE@50": 0.16003708065031647,
+            "NDCG@5": 0.036658589430816846,
+            "NDCG@10": 0.04366479555402447,
+            "NDCG@20": 0.05126301981981745,
+            "NDCG@50": 0.061956166864426
+            },
+            "test": {
+            "HITRATE@1": 0.015169391549838629,
+            "HITRATE@5": 0.040592168103935976,
+            "HITRATE@10": 0.05918871849370114,
+            "HITRATE@20": 0.08506095849923173,
+            "HITRATE@50": 0.13239507840951445,
+            "NDCG@5": 0.028035175616287992,
+            "NDCG@10": 0.034001413953366914,
+            "NDCG@20": 0.040509808217299055,
+            "NDCG@50": 0.04987323179751462
+            },
+            "best": {
+            "HITRATE@1": 0.016012135515088597,
+            "HITRATE@5": 0.04073262543676676,
+            "HITRATE@10": 0.06011573686635697,
+            "HITRATE@20": 0.08461149503157792,
+            "HITRATE@50": 0.13079386489084177,
+            "NDCG@5": 0.028494734078464874,
+            "NDCG@10": 0.03472374945314297,
+            "NDCG@20": 0.04085748345417463,
+            "NDCG@50": 0.050026655399011216
+            }
+        }
+        },
+        {
+        "id": "0427095833",
+        "params": {
+            "config": "configs/Amazon2014Sports_550_LOU.yaml",
+            "seed": 4
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 6.830324587300568
+            },
+            "valid": {
+            "HITRATE@1": 0.02092814202964012,
+            "HITRATE@5": 0.053710882623077,
+            "HITRATE@10": 0.07683015898220846,
+            "HITRATE@20": 0.10612955787883889,
+            "HITRATE@50": 0.16214394064152252,
+            "NDCG@5": 0.03701608764376366,
+            "NDCG@10": 0.044381306812425025,
+            "NDCG@20": 0.05179632571197536,
+            "NDCG@50": 0.06259487415288993
+            },
+            "test": {
+            "HITRATE@1": 0.015057025676253808,
+            "HITRATE@5": 0.040451710764616955,
+            "HITRATE@10": 0.06048092590360834,
+            "HITRATE@20": 0.08711163549393013,
+            "HITRATE@50": 0.13545704819167845,
+            "NDCG@5": 0.027988730251091713,
+            "NDCG@10": 0.03443187612482849,
+            "NDCG@20": 0.041133377796588495,
+            "NDCG@50": 0.05067353450585245
+            },
+            "best": {
+            "HITRATE@1": 0.015759312322957558,
+            "HITRATE@5": 0.04255857070794616,
+            "HITRATE@10": 0.06126748696551429,
+            "HITRATE@20": 0.0872801843013641,
+            "HITRATE@50": 0.13337827974812047,
+            "NDCG@5": 0.029400414049929297,
+            "NDCG@10": 0.035405619003900456,
+            "NDCG@20": 0.041954311027392874,
+            "NDCG@50": 0.051061311024253445
+            }
+        }
+        }
+    ],
+    "timestamp": "2026-04-27T10:35:49",
+    "config": {
+        "BEST_FILENAME": "best.pt",
+        "CHECKPOINT_FILENAME": "checkpoint.tar",
+        "CHECKPOINT_FREQ": 1,
+        "CHECKPOINT_MODULES": [
+        "model",
+        "optimizer",
+        "lr_scheduler"
+        ],
+        "CHECKPOINT_PATH": "./infos/eval_BSARec_Amazon2014Sports_550_LOU/Amazon2014Sports_550_LOU/5",
+        "CONFIG_FILENAME": "config.yaml",
+        "DATA_DIR": "data",
+        "LOG_PATH": "./logs/eval_BSARec_Amazon2014Sports_550_LOU/Amazon2014Sports_550_LOU/0427095833",
+        "MONITOR_BEST_FILENAME": "best.pkl",
+        "MONITOR_FILENAME": "monitors.pkl",
+        "RESULTS_FILENAME": "results.json",
+        "SAVED_FILENAME": "model.pt",
+        "SUMMARY_DIR": "summary",
+        "SUMMARY_FILENAME": "SUMMARY.md",
+        "adam_beta1": 0.9,
+        "adam_beta2": 0.999,
+        "alpha": 0.7,
+        "attn_dropout_rate": 0.5,
+        "batch_size": 256,
+        "benchmark": false,
+        "c": 5,
+        "config": "configs/Amazon2014Sports_550_LOU.yaml",
+        "dataset": "Amazon2014Sports_550_LOU",
+        "ddp_backend": "nccl",
+        "description": "eval_BSARec_Amazon2014Sports_550_LOU",
+        "device": "cuda:5",
+        "early_stop_patience": 1e+23,
+        "embedding_dim": 64,
+        "epochs": 200,
+        "eval_freq": 5,
+        "eval_test": false,
+        "eval_valid": true,
+        "gradient_accumulation_steps": 1,
+        "hidden_act": "gelu",
+        "hidden_dropout_rate": 0.5,
+        "id": "0427095833",
+        "log2console": true,
+        "log2file": true,
+        "loss": "CE",
+        "lr": 0.0005,
+        "maxlen": 50,
+        "monitors": [
+        "LOSS",
+        "HitRate@1",
+        "HitRate@5",
+        "HitRate@10",
+        "HitRate@20",
+        "HitRate@50",
+        "NDCG@5",
+        "NDCG@10",
+        "NDCG@20",
+        "NDCG@50"
+        ],
+        "num_blocks": 2,
+        "num_heads": 1,
+        "num_workers": 4,
+        "optimizer": "adam",
+        "ranking": "full",
+        "resume": false,
+        "retain_seen": false,
+        "root": "../../data",
+        "seed": 4,
+        "sgd_momentum": 0.9,
+        "sgd_nesterov": false,
+        "tasktag": "TaskTags.NEXTITEM",
+        "weight_decay": 0.0001,
+        "which4best": "NDCG@10"
+    }
+    }
+
+]

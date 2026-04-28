@@ -1,0 +1,309 @@
+[
+
+    {
+    "description": "",
+    "dataset": "Amazon2014Toys_550_LOU",
+    "runs": [
+        {
+        "id": "0426200745",
+        "params": {
+            "config": "configs/Amazon2014Toys_550_LOU.yaml",
+            "seed": 0
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 5.831905628570791
+            },
+            "valid": {
+            "HITRATE@1": 0.042860086469753866,
+            "HITRATE@5": 0.09725942696616831,
+            "HITRATE@10": 0.13022872408502328,
+            "HITRATE@20": 0.16958582270855932,
+            "HITRATE@50": 0.23341232141437246,
+            "NDCG@5": 0.07055572372938546,
+            "NDCG@10": 0.08134392104573147,
+            "NDCG@20": 0.09080965396277062,
+            "NDCG@50": 0.10348291138358616
+            },
+            "test": {
+            "HITRATE@1": 0.03245415201407965,
+            "HITRATE@5": 0.07783845019239495,
+            "HITRATE@10": 0.10591386746083206,
+            "HITRATE@20": 0.1423346380179822,
+            "HITRATE@50": 0.20162785878067604,
+            "NDCG@5": 0.055577993154788286,
+            "NDCG@10": 0.06455098531043317,
+            "NDCG@20": 0.0737026326827338,
+            "NDCG@50": 0.0854108864589282
+            },
+            "best": {
+            "HITRATE@1": 0.03415413139003768,
+            "HITRATE@5": 0.08123840896618838,
+            "HITRATE@10": 0.10890171014105637,
+            "HITRATE@20": 0.14434370450259434,
+            "HITRATE@50": 0.20003090819427213,
+            "NDCG@5": 0.05830574960480664,
+            "NDCG@10": 0.06722881924572088,
+            "NDCG@20": 0.07614107324087187,
+            "NDCG@50": 0.08720660824869837
+            }
+        }
+        },
+        {
+        "id": "0426200747",
+        "params": {
+            "config": "configs/Amazon2014Toys_550_LOU.yaml",
+            "seed": 1
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 5.83849233855734
+            },
+            "valid": {
+            "HITRATE@1": 0.042860086466107644,
+            "HITRATE@5": 0.097877601110552,
+            "HITRATE@10": 0.1299711515002034,
+            "HITRATE@20": 0.1686585610903233,
+            "HITRATE@50": 0.23336080732098466,
+            "NDCG@5": 0.07075547004552654,
+            "NDCG@10": 0.08079251110770212,
+            "NDCG@20": 0.09057609567734573,
+            "NDCG@50": 0.10336690445198561
+            },
+            "test": {
+            "HITRATE@1": 0.03472079118445451,
+            "HITRATE@5": 0.07665361608337329,
+            "HITRATE@10": 0.10601689644977712,
+            "HITRATE@20": 0.14053162977916173,
+            "HITRATE@50": 0.19961879218015233,
+            "NDCG@5": 0.05617697560319563,
+            "NDCG@10": 0.065657294441307,
+            "NDCG@20": 0.07437258060789743,
+            "NDCG@50": 0.08606428874385202
+            },
+            "best": {
+            "HITRATE@1": 0.032351122941655236,
+            "HITRATE@5": 0.07886874076311376,
+            "HITRATE@10": 0.10627446916470965,
+            "HITRATE@20": 0.1417164636636527,
+            "HITRATE@50": 0.20152482948007472,
+            "NDCG@5": 0.0561812838632364,
+            "NDCG@10": 0.06501799099229456,
+            "NDCG@20": 0.07396763311413092,
+            "NDCG@50": 0.08580016165122761
+            }
+        }
+        },
+        {
+        "id": "0426200748",
+        "params": {
+            "config": "configs/Amazon2014Toys_550_LOU.yaml",
+            "seed": 2
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 5.816675582573678
+            },
+            "valid": {
+            "HITRATE@1": 0.042499484722121596,
+            "HITRATE@5": 0.09612610723992954,
+            "HITRATE@10": 0.12981660812847545,
+            "HITRATE@20": 0.1693797646216663,
+            "HITRATE@50": 0.23516381529957983,
+            "NDCG@5": 0.06958530715870324,
+            "NDCG@10": 0.0804337724412308,
+            "NDCG@20": 0.09039722914603501,
+            "NDCG@50": 0.10342585408778786
+            },
+            "test": {
+            "HITRATE@1": 0.03477230570627372,
+            "HITRATE@5": 0.07685967423513074,
+            "HITRATE@10": 0.10457448969797979,
+            "HITRATE@20": 0.13955285359775063,
+            "HITRATE@50": 0.19776426913942502,
+            "NDCG@5": 0.056307659787274617,
+            "NDCG@10": 0.06526113397411291,
+            "NDCG@20": 0.07408130908522709,
+            "NDCG@50": 0.08560068295512854
+            },
+            "best": {
+            "HITRATE@1": 0.033896558758200704,
+            "HITRATE@5": 0.08067174933431641,
+            "HITRATE@10": 0.10941685537556053,
+            "HITRATE@20": 0.1416649490498143,
+            "HITRATE@50": 0.20198846041201293,
+            "NDCG@5": 0.05777193511059585,
+            "NDCG@10": 0.06705615930923224,
+            "NDCG@20": 0.07518866573656721,
+            "NDCG@50": 0.08713559577363976
+            }
+        }
+        },
+        {
+        "id": "0426200749",
+        "params": {
+            "config": "configs/Amazon2014Toys_550_LOU.yaml",
+            "seed": 3
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 5.799408447961437
+            },
+            "valid": {
+            "HITRATE@1": 0.04219039756318797,
+            "HITRATE@5": 0.09643519438101586,
+            "HITRATE@10": 0.1285287448570252,
+            "HITRATE@20": 0.16855553207988472,
+            "HITRATE@50": 0.23346383620169442,
+            "NDCG@5": 0.06959617566551446,
+            "NDCG@10": 0.0798756054157532,
+            "NDCG@20": 0.08995709321163203,
+            "NDCG@50": 0.10268978173112393
+            },
+            "test": {
+            "HITRATE@1": 0.03379352971494609,
+            "HITRATE@5": 0.07850813911316194,
+            "HITRATE@10": 0.10514114955438245,
+            "HITRATE@20": 0.1388316502836459,
+            "HITRATE@50": 0.19802184155076133,
+            "NDCG@5": 0.056818684982932306,
+            "NDCG@10": 0.06543169317349819,
+            "NDCG@20": 0.07393944821714458,
+            "NDCG@50": 0.08563219106552922
+            },
+            "best": {
+            "HITRATE@1": 0.03580259624657534,
+            "HITRATE@5": 0.08031114752911217,
+            "HITRATE@10": 0.10766536125200521,
+            "HITRATE@20": 0.142489181461867,
+            "HITRATE@50": 0.20008242282269542,
+            "NDCG@5": 0.05837106219648873,
+            "NDCG@10": 0.0671639780162945,
+            "NDCG@20": 0.07594543381720972,
+            "NDCG@50": 0.08733235017561357
+            }
+        }
+        },
+        {
+        "id": "0426200751",
+        "params": {
+            "config": "configs/Amazon2014Toys_550_LOU.yaml",
+            "seed": 4
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 5.810047081247538
+            },
+            "valid": {
+            "HITRATE@1": 0.04167525235017734,
+            "HITRATE@5": 0.09592004929044162,
+            "HITRATE@10": 0.12780754149187332,
+            "HITRATE@20": 0.16865856120623487,
+            "HITRATE@50": 0.23341232162393444,
+            "NDCG@5": 0.06941891812723051,
+            "NDCG@10": 0.07966099414830904,
+            "NDCG@20": 0.08992630960648143,
+            "NDCG@50": 0.10255989638941511
+            },
+            "test": {
+            "HITRATE@1": 0.03363898612799492,
+            "HITRATE@5": 0.07670513066113327,
+            "HITRATE@10": 0.10328662669443112,
+            "HITRATE@20": 0.13759530158995562,
+            "HITRATE@50": 0.19724912386845858,
+            "NDCG@5": 0.05572162740843709,
+            "NDCG@10": 0.06427017940861182,
+            "NDCG@20": 0.07291904608869698,
+            "NDCG@50": 0.08471377817739255
+            },
+            "best": {
+            "HITRATE@1": 0.03281475370538734,
+            "HITRATE@5": 0.07845662444501397,
+            "HITRATE@10": 0.10658355626971752,
+            "HITRATE@20": 0.141664949093569,
+            "HITRATE@50": 0.20070059716244001,
+            "NDCG@5": 0.056223261041511846,
+            "NDCG@10": 0.06526309131651767,
+            "NDCG@20": 0.07407560712925962,
+            "NDCG@50": 0.08575332708051898
+            }
+        }
+        }
+    ],
+    "timestamp": "2026-04-26T20:30:11",
+    "config": {
+        "BEST_FILENAME": "best.pt",
+        "CHECKPOINT_FILENAME": "checkpoint.tar",
+        "CHECKPOINT_FREQ": 1,
+        "CHECKPOINT_MODULES": [
+        "model",
+        "optimizer",
+        "lr_scheduler"
+        ],
+        "CHECKPOINT_PATH": "./infos/eval_BSARec_Amazon2014Toys_550_LOU/Amazon2014Toys_550_LOU/7",
+        "CONFIG_FILENAME": "config.yaml",
+        "DATA_DIR": "data",
+        "LOG_PATH": "./logs/eval_BSARec_Amazon2014Toys_550_LOU/Amazon2014Toys_550_LOU/0426200751",
+        "MONITOR_BEST_FILENAME": "best.pkl",
+        "MONITOR_FILENAME": "monitors.pkl",
+        "RESULTS_FILENAME": "results.json",
+        "SAVED_FILENAME": "model.pt",
+        "SUMMARY_DIR": "summary",
+        "SUMMARY_FILENAME": "SUMMARY.md",
+        "adam_beta1": 0.9,
+        "adam_beta2": 0.999,
+        "alpha": 0.7,
+        "attn_dropout_rate": 0.3,
+        "batch_size": 256,
+        "benchmark": false,
+        "c": 5,
+        "config": "configs/Amazon2014Toys_550_LOU.yaml",
+        "dataset": "Amazon2014Toys_550_LOU",
+        "ddp_backend": "nccl",
+        "description": "eval_BSARec_Amazon2014Toys_550_LOU",
+        "device": "cuda:7",
+        "early_stop_patience": 1e+23,
+        "embedding_dim": 64,
+        "epochs": 200,
+        "eval_freq": 5,
+        "eval_test": false,
+        "eval_valid": true,
+        "gradient_accumulation_steps": 1,
+        "hidden_act": "gelu",
+        "hidden_dropout_rate": 0.5,
+        "id": "0426200751",
+        "log2console": true,
+        "log2file": true,
+        "loss": "CE",
+        "lr": 0.0005,
+        "maxlen": 50,
+        "monitors": [
+        "LOSS",
+        "HitRate@1",
+        "HitRate@5",
+        "HitRate@10",
+        "HitRate@20",
+        "HitRate@50",
+        "NDCG@5",
+        "NDCG@10",
+        "NDCG@20",
+        "NDCG@50"
+        ],
+        "num_blocks": 2,
+        "num_heads": 1,
+        "num_workers": 4,
+        "optimizer": "adam",
+        "ranking": "full",
+        "resume": false,
+        "retain_seen": false,
+        "root": "../../data",
+        "seed": 4,
+        "sgd_momentum": 0.9,
+        "sgd_nesterov": false,
+        "tasktag": null,
+        "weight_decay": 0.0001,
+        "which4best": "NDCG@10"
+    }
+    }
+
+]

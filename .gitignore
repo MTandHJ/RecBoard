@@ -6,6 +6,16 @@ media/
 .vscode/
 simple_demo.py
 
+# vibe coding
+.claude
+CLAUDE.md
+specs/
+
+# RecBoard (auto-generated)
+recboard/node_modules/
+recboard/dist/
+recboard/src/data/results.ts
+
 # mac
 .DS_Store
 

@@ -1,0 +1,12 @@
+{
+  "description": "Amazon 2014 Beauty product reviews (5-core, leave-one-out split)",
+  "build_command": "freerec make Amazon2014Beauty --root . --kcore4user 5 --kcore4item 5 --splitting LOU",
+  "sort_by": "NDCG@10",
+  "core_metrics": ["NDCG@10", "NDCG@20", "HITRATE@10", "HITRATE@20"],
+  "statistics": {
+    "#Users": 22363,
+    "#Items": 12101,
+    "#Interactions": 198502,
+    "Avg. Len.": 8.88
+  }
+}
