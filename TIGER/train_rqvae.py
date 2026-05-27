@@ -164,8 +164,6 @@ class RQVAE(freerec.models.RecSysArch):
     ) -> Dict[str, torch.Tensor]:
         items = data[self.Item].flatten()
         x = self.Item.embeddings(items)
-
-        x = self.Item.embeddings(items)
         z = self.encode(x)
         q, auxiliary_loss, _ = self.quantizer(z)
         x_hat = self.decode(q)
@@ -211,6 +209,7 @@ class CoachForRQVAE(freerec.launcher.Coach):
     def set_other(self):
         self.register_metric("RECON_LOSS", lambda x: x, best_caster=min)
         self.register_metric("COMMIT_LOSS", lambda x: x, best_caster=min)
+        self.register_metric("PPL", lambda x: x, best_caster=max)
         self.register_metric("COLLISION_RATE", lambda x: x, best_caster=min)
         for i in range(self.cfg.num_codebooks):
             self.register_metric(f"PPL#{i}", lambda x: x, best_caster=max)
@@ -240,7 +239,8 @@ class CoachForRQVAE(freerec.launcher.Coach):
                 pool=["COMMIT_LOSS"],
             )
 
-        self.save_sid_vocab()
+        if epoch % self.cfg.eval_freq == 0:
+            self.save_sid_vocab()
 
     def evaluate(self, epoch, step=-1, mode="valid"):
         sem_ids = self.get_res_sys_arch().generate_sem_ids().cpu()
@@ -251,9 +251,17 @@ class CoachForRQVAE(freerec.launcher.Coach):
         freqs = counts.div(counts.sum(dim=0, keepdim=True))
         perplexity = ((freqs + 1.0e-8).log() * freqs).sum(dim=0).neg().exp().tolist()
 
+        ppls = []
         for i, ppl in enumerate(perplexity):
+            ppls.append(ppl)
             self.monitor(ppl, n=1, mode="valid", pool=[f"PPL#{i}"])
 
+        self.monitor(
+            sum(ppls)
+            n=len(ppls),
+            mode=mode,
+            pool=["PPL"],
+        )
         self.monitor(
             (self.Item.count - len(uniques)) / self.Item.count,
             n=1,

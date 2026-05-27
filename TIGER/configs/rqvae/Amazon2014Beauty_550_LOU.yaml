@@ -23,4 +23,5 @@ lr: 1.e-3
 weight_decay: 0.0
 
 # Evaluation
-which4best: PPL#0
+eval_freq: 100
+which4best: PPL
