@@ -1,37 +1,37 @@
-
 # %%
 
-import pandas as pd
 import os
+
+import pandas as pd
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-import torch
-import numpy as np
 import pickle
+
+import numpy as np
+import torch
+from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
 # Load model directly
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from sentence_transformers import SentenceTransformer
-
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # %%
 
 root = "../../data"
 dataset = "Amazon2014Beauty_550_LOU"
 path = os.path.join(root, "Processed", dataset)
-item_df = pd.read_csv(os.path.join(path, "item.txt"), sep='\t')
+item_df = pd.read_csv(os.path.join(path, "item.txt"), sep="\t")
 
-fields = ('TITLE', 'CATEGORIES', 'BRAND')
+fields = ("TITLE", "CATEGORIES", "BRAND")
 # fields = ('TITLE',)
 for field in fields:
-    item_df[field] = item_df[field].fillna('')
+    item_df[field] = item_df[field].fillna("")
 
-item_df['TEXT'] = item_df.apply(
-    lambda row: "\n".join([f"{field}: {row[field]}." for field in fields]),
-    axis=1
+item_df["TEXT"] = item_df.apply(
+    lambda row: "\n".join([f"{field}: {row[field]}." for field in fields]), axis=1
 )
 
-print(item_df['TEXT'].head(5))
+print(item_df["TEXT"].head(5))
 
 # %%
 
@@ -60,21 +60,27 @@ def encode_by_llama(
     item_df: pd.DataFrame,
     model_dir: str = "./models",
     model: str = "Llama-2-7b-hf",
-    batch_size: int = 32
+    batch_size: int = 32,
 ):
     saved_filename = f"{model}_{'_'.join(fields)}.pkl".lower()
     model_path = os.path.join(model_dir, model)
-    tokenizer = AutoTokenizer.from_pretrained(model_path, device_map = 'cuda')
-    model = AutoModelForCausalLM.from_pretrained(model_path, device_map = 'cuda')
+    tokenizer = AutoTokenizer.from_pretrained(model_path, device_map="cuda")
+    model = AutoModelForCausalLM.from_pretrained(model_path, device_map="cuda")
 
     tokenizer.padding_side = "left"
     tokenizer.pad_token = tokenizer.eos_token
 
     for i in tqdm(range(0, len(item_df), batch_size)):
         # print(i)
-        item_names = item_df['TEXT'][i:i+batch_size]
+        item_names = item_df["TEXT"][i : i + batch_size]
         # 生成输出
-        inputs = tokenizer(item_names.tolist(), return_tensors="pt", padding=True, truncation=True, max_length=128).to(model.device)
+        inputs = tokenizer(
+            item_names.tolist(),
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=128,
+        ).to(model.device)
         with torch.no_grad():
             output = model(**inputs, output_hidden_states=True)
         seq_embeds = output.hidden_states[-1][:, -1, :].detach().cpu().numpy()
@@ -85,39 +91,32 @@ def encode_by_llama(
             tFeats = np.concatenate((tFeats, seq_embeds), axis=0)
     tFeats = torch.from_numpy(tFeats).float()
 
-    export_pickle(
-        tFeats,
-        os.path.join(path, saved_filename)
-    )
+    export_pickle(tFeats, os.path.join(path, saved_filename))
 
     return tFeats
 
 
 def encode_textual_modality(
     item_df: pd.DataFrame,
-    model: str = "all-MiniLM-L12-v2", model_dir: str = "./models",
-    batch_size: int = 128
+    model: str = "all-MiniLM-L12-v2",
+    model_dir: str = "./models",
+    batch_size: int = 128,
 ):
     saved_filename = f"{model}_{'_'.join(fields)}.pkl".lower()
-    sentences = item_df['TEXT']
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    encoder = SentenceTransformer(
-        os.path.join(model_dir, model),
-        device=device
-    ).eval()
+    sentences = item_df["TEXT"]
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    encoder = SentenceTransformer(os.path.join(model_dir, model), device=device).eval()
 
     with torch.no_grad():
         tFeats = encoder.encode(
-            sentences, 
+            sentences,
             convert_to_tensor=True,
-            batch_size=batch_size, show_progress_bar=True
+            batch_size=batch_size,
+            show_progress_bar=True,
         ).cpu()
-    assert tFeats.size(0) == len(item_df), f"Unknown errors happen ..."
+    assert tFeats.size(0) == len(item_df), "Unknown errors happen ..."
 
-    export_pickle(
-        tFeats,
-        os.path.join(path, saved_filename)
-    )
+    export_pickle(tFeats, os.path.join(path, saved_filename))
 
     return tFeats
 

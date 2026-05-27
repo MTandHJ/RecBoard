@@ -1,26 +1,26 @@
+# Data
 root: ../../data
 dataset: Amazon2014Beauty_550_LOU
 
+# Model
 maxlen: 50
-
-embedding_dim: 64
+embedding_dim: 128
 attention_size: 64
-intermediate_size: 64
-
+intermediate_size: 256
 num_layers: 6
 num_heads: 4
-
 dropout_rate: 0.1
-input_dropout_rate: 0.
+sid_vocab_file: ./logs/R-KMeans/Amazon2014Beauty_550_LOU/1117130719/sid_vocab.json
 
+# Training
 epochs: 500
 optimizer: AdamW
 batch_size: 512
-lr: 1.e-3
+lr: 5.e-4
 weight_decay: 1.e-3
 
-num_beams: 32
-sem_id_ckpt: ./logs/R-KMeans/Amazon2014Beauty_550_LOU/1117130719/sem_id_0.pkl
-
-monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, NDCG@5, NDCG@10]
+# Evaluation
+num_beams: 20
+# HITRate@50 and NDCG@50 require `num_beams` >= 50.
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, NDCG@5, NDCG@10, NDCG@20]
 which4best: NDCG@10
