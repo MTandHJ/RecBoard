@@ -257,9 +257,10 @@ class CoachForRQVAE(freerec.launcher.Coach):
             self.monitor(ppl, n=1, mode="valid", pool=[f"PPL#{i}"])
 
         self.monitor(
-            sum(ppls)
+            sum(ppls),
             n=len(ppls),
             mode=mode,
+            reduction="sum",
             pool=["PPL"],
         )
         self.monitor(
