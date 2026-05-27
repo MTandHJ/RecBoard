@@ -121,8 +121,8 @@ class SemIDConverter:
         self.tokenizer = tokenizer
 
         sid_vocab = self._check_sid_vocab(sid_vocab)
-        if self._check_conflicts(sid_vocab):
-            sid_vocab = self.resolve_conflicts(sid_vocab)
+        if self._check_collision(sid_vocab):
+            sid_vocab = self.resolve_collision(sid_vocab)
         self._item_to_sids = sid_vocab
         self._sids_to_item = {sids: item for item, sids in sid_vocab.items()}
 
@@ -401,7 +401,7 @@ class SemIDConverter:
         return {item: tuple(sids) for item, sids in sid_vocab.items()}
 
     @classmethod
-    def _check_conflicts(
+    def _check_collision(
         cls,
         sid_vocab: Dict[str, Tuple[str, ...]],
     ) -> bool:
@@ -413,7 +413,7 @@ class SemIDConverter:
         return False
 
     @classmethod
-    def resolve_conflicts(
+    def resolve_collision(
         cls,
         sid_vocab: Dict[str, Tuple[str, ...]],
     ) -> Dict[str, Tuple[str]]:
@@ -431,10 +431,10 @@ class SemIDConverter:
 
         Examples
         --------
-        >>> SemIDConverter.resolve_conflicts(
+        >>> SemIDConverter.resolve_collision(
         ...     {"item_0": ("<sid_0_2>",), "item_1": ("<sid_0_2>",)}
         ... )
-        [SemIDConverter] >>> Additional 2 tokens for resolving conflicts ...
+        [SemIDConverter] >>> Additional 2 tokens for resolving collision ...
         {'item_0': ('<sid_0_2>', '<sid_c_0>'), 'item_1': ('<sid_0_2>', '<sid_c_1>')}
         """
         groups = defaultdict(list)
@@ -448,7 +448,7 @@ class SemIDConverter:
                 resolved[item] = sids + (cls.CHECK_SID_FORMAT.format(id=check_id),)
             max_check_tokens = max(max_check_tokens, len(items))
         infoLogger(
-            f"[{cls.__name__}] >>> Additional {max_check_tokens} tokens for resolving conflicts ..."
+            f"[{cls.__name__}] >>> Additional {max_check_tokens} tokens for resolving collision ..."
         )
         return {item: resolved[item] for item in sorted(resolved)}
 
