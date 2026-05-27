@@ -36,7 +36,7 @@ cfg.add_argument(
 )
 
 cfg.set_defaults(
-    description="GenRec-T5",
+    description="TIGER-T5",
     root="../../data",
     dataset="Amazon2014Beauty_550_LOU",
     epochs=500,

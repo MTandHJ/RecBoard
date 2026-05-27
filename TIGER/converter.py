@@ -91,7 +91,7 @@ class SemIDConverter:
     ...     def convert_tokens_to_ids(self, token):
     ...         return self.vocab[token]
     >>> converter = SemIDConverter({"item_3": ("<sid_0_2>",)}, _Tokenizer())
-    [SemIDConverter >>>] Registering 3 tokens to _Tokenizer ...
+    [SemIDConverter] >>> Registering 3 tokens to _Tokenizer ...
     >>> converter.encode("item_3")
     '<SID> <sid_0_2> </SID>'
     >>> converter.decode("result: <SID><sid_0_2></SID>")
@@ -287,7 +287,7 @@ class SemIDConverter:
         ...     def convert_tokens_to_ids(self, token):
         ...         return self[token]
         >>> converter = SemIDConverter({"item_2": ("<sid_0_1>", "<sid_1_3>"), "book_8": ("<sid_0_4>",)}, _Tokenizer())
-        [SemIDConverter >>>] Registering 5 tokens to _Tokenizer ...
+        [SemIDConverter] >>> Registering 5 tokens to _Tokenizer ...
         >>> converter.decode("chosen: <SID> <sid_0_1> <sid_1_3> </SID>; <SID><sid_0_1><sid_1_3></SID>")
         [2, 2]
         >>> converter.decode("<SID><sid_0_4></SID>", prefix="book")
@@ -434,7 +434,7 @@ class SemIDConverter:
         >>> SemIDConverter.resolve_conflicts(
         ...     {"item_0": ("<sid_0_2>",), "item_1": ("<sid_0_2>",)}
         ... )
-        [SemIDConverter >>>] Additional 2 tokens for resolving conflicts ...
+        [SemIDConverter] >>> Additional 2 tokens for resolving conflicts ...
         {'item_0': ('<sid_0_2>', '<sid_c_0>'), 'item_1': ('<sid_0_2>', '<sid_c_1>')}
         """
         groups = defaultdict(list)
@@ -448,7 +448,7 @@ class SemIDConverter:
                 resolved[item] = sids + (cls.CHECK_SID_FORMAT.format(id=check_id),)
             max_check_tokens = max(max_check_tokens, len(items))
         infoLogger(
-            f"[{cls.__name__} >>>] Additional {max_check_tokens} tokens for resolving conflicts ..."
+            f"[{cls.__name__}] >>> Additional {max_check_tokens} tokens for resolving conflicts ..."
         )
         return {item: resolved[item] for item in sorted(resolved)}
 
@@ -472,7 +472,7 @@ class SemIDConverter:
         ]
         self.tokenizer.add_tokens(added_tokens)
         infoLogger(
-            f"[{type(self).__name__} >>>] Registering {len(added_tokens)} tokens "
+            f"[{type(self).__name__}] >>> Registering {len(added_tokens)} tokens "
             f"to {type(self.tokenizer).__qualname__} ..."
         )
 

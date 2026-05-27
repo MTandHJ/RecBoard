@@ -109,16 +109,12 @@ class ResidualQuantizer(nn.Module):
         self.sk_epsilons = sk_epsilons
         self.commit_weight = commit_weight
 
-    @staticmethod
-    def cdist(x, y, p=2):
-        return torch.cdist(x, y, p=2)
-
     def commit(self, x: torch.Tensor, y: torch.Tensor):
         return F.mse_loss(x, y.detach(), reduction="sum") / x.size(0)
 
     def step(self, r: torch.Tensor, l: int):
         codebook = self.codebooks[l].reinit_kmeans_codebook(r)
-        dist = self.cdist(r, codebook)  # (B, K)
+        dist = torch.cdist(r, codebook, p=2)  # (B, K)
         if self.sk_epsilons[l] > 0.0:
             dist = -sinkhorn_algorithm(dist, self.sk_epsilons[l], self.sk_iters)
         ids = torch.argmin(dist, dim=-1)  # (B,)

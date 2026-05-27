@@ -123,6 +123,7 @@ class CoachForRKMeans(freerec.launcher.Coach):
 
     def set_other(self):
         self.register_metric("RECON_LOSS", lambda x: x, best_caster=min)
+        self.register_metric("PPL", lambda x: x, best_caster=max)
         self.register_metric("COLLISION_RATE", lambda x: x, best_caster=min)
         for i in range(self.cfg.num_codebooks):
             self.register_metric(f"PPL#{i}", lambda x: x, best_caster=max)
@@ -139,9 +140,17 @@ class CoachForRKMeans(freerec.launcher.Coach):
         freqs = counts.div(counts.sum(dim=0, keepdim=True))
         perplexity = ((freqs + 1.0e-8).log() * freqs).sum(dim=0).neg().exp().tolist()
 
+        ppls = []
         for i, ppl in enumerate(perplexity):
+            ppls.append(ppl)
             self.monitor(ppl, n=1, mode="valid", pool=[f"PPL#{i}"])
 
+        self.monitor(
+            sum(ppls)
+            n=len(ppls),
+            mode=mode,
+            pool=["PPL"],
+        )
         self.monitor(
             (self.Item.count - len(uniques)) / self.Item.count,
             n=1,
