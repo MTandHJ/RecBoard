@@ -154,12 +154,10 @@ class BSARec(freerec.models.SeqRecArch):
         for l in range(self.num_blocks):
             seqs = self.after_one_block(seqs, attention_mask, l)
 
-        return seqs, self.Item.embeddings.weight[self.NUM_PADS :]
+        return seqs[:, -1, :], self.Item.embeddings.weight[self.NUM_PADS :]
 
     def fit(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
         userEmbds, itemEmbds = self.encode(data)
-        posEmbds = itemEmbds[data[self.IPos]]  # (B, 1, D)
-        negEmbds = itemEmbds[data[self.INeg]]  # (B, 1, D)
 
         if cfg.loss in ("BCE", "BPR"):
             posEmbds = itemEmbds[data[self.IPos]]  # (B, 1, D)
@@ -188,14 +186,12 @@ class BSARec(freerec.models.SeqRecArch):
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> torch.Tensor:
         userEmbds, itemEmbds = self.encode(data)
-        userEmbds = userEmbds[:, -1, :]  # (B, D)
         return torch.einsum("BD,ND->BN", userEmbds, itemEmbds)
 
     def recommend_from_pool(
         self, data: Dict[freerec.data.fields.Field, torch.Tensor]
     ) -> torch.Tensor:
         userEmbds, itemEmbds = self.encode(data)
-        userEmbds = userEmbds[:, -1, :]  # (B, D)
         itemEmbds = itemEmbds[data[self.IUnseen]]  # (B, K, D)
         return torch.einsum("BD,BKD->BK", userEmbds, itemEmbds)
 
