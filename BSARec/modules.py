@@ -95,7 +95,7 @@ class MultiHeadAttention(nn.Module):
         self.value = nn.Linear(args.hidden_size, self.all_head_size)
 
         self.softmax = nn.Softmax(dim=-1)
-        self.attn_dropout = nn.Dropout(args.atten_dropout_rate)
+        self.attn_dropout = nn.Dropout(args.attn_dropout_rate)
 
         self.dense = nn.Linear(args.hidden_size, args.hidden_size)
         self.LayerNorm = nn.LayerNorm(args.hidden_size, eps=1e-12) # TODO
