@@ -3,7 +3,7 @@
     {
     "description": "RQ-VAE",
     "dataset": "Amazon2014Beauty_550_LOU",
-    "tags": ["CE", 128],
+    "tags": ["Generative", "CE", "128"],
     "runs": [
         {
         "id": "0528175918",

@@ -1,0 +1,207 @@
+[
+
+    {
+    "description": "RQ-VAE",
+    "dataset": "Amazon2014Sports_550_LOU",
+    "tags": ["Generative", "CE", "128"],
+    "runs": [
+        {
+        "id": "0529191041",
+        "params": {
+            "early_stop_patience": 5,
+            "config": "configs/t5/Amazon2014Sports_550_LOU.yaml",
+            "seed": 0
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.593801103472112
+            },
+            "valid": {
+            "HITRATE@1": 0.005309287038597674,
+            "HITRATE@5": 0.01783808079105568,
+            "HITRATE@10": 0.02907466711613012,
+            "HITRATE@20": 0.041687735266026184,
+            "NDCG@5": 0.011696524240373325,
+            "NDCG@10": 0.01515764316164166,
+            "NDCG@20": 0.01825756064346516
+            },
+            "best": {
+            "HITRATE@1": 0.003708073487274566,
+            "HITRATE@5": 0.013624360919152761,
+            "HITRATE@10": 0.02120905668857801,
+            "HITRATE@20": 0.03022641721445025,
+            "NDCG@5": 0.00872492976580867,
+            "NDCG@10": 0.011161423582924612,
+            "NDCG@20": 0.013453464860279605
+            }
+        }
+        },
+        {
+        "id": "0529191043",
+        "params": {
+            "early_stop_patience": 5,
+            "config": "configs/t5/Amazon2014Sports_550_LOU.yaml",
+            "seed": 1
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.5534348518172527
+            },
+            "valid": {
+            "HITRATE@1": 0.007612787235237934,
+            "HITRATE@5": 0.025366593628855554,
+            "HITRATE@10": 0.040507893701893366,
+            "HITRATE@20": 0.058121242766447555,
+            "NDCG@5": 0.016111791200855888,
+            "NDCG@10": 0.02095954062727852,
+            "NDCG@20": 0.025279251868533675
+            },
+            "best": {
+            "HITRATE@1": 0.0053935614360357325,
+            "HITRATE@5": 0.01789426372268105,
+            "HITRATE@10": 0.029102758581942806,
+            "HITRATE@20": 0.043317040283161974,
+            "NDCG@5": 0.011674687410346631,
+            "NDCG@10": 0.015291733247717147,
+            "NDCG@20": 0.018901607837008724
+            }
+        }
+        },
+        {
+        "id": "0529191044",
+        "params": {
+            "early_stop_patience": 5,
+            "config": "configs/t5/Amazon2014Sports_550_LOU.yaml",
+            "seed": 2
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.7090605758462496
+            },
+            "valid": {
+            "HITRATE@1": 0.0028091465812686107,
+            "HITRATE@5": 0.009607281307938649,
+            "HITRATE@10": 0.01587167818416765,
+            "HITRATE@20": 0.022754087308275744,
+            "NDCG@5": 0.006239169278977473,
+            "NDCG@10": 0.008140144153782287,
+            "NDCG@20": 0.009880702908494257
+            },
+            "best": {
+            "HITRATE@1": 0.0023315916624529467,
+            "HITRATE@5": 0.007135232316422271,
+            "HITRATE@10": 0.011714141243890107,
+            "HITRATE@20": 0.01679869655598629,
+            "NDCG@5": 0.004759809158311693,
+            "NDCG@10": 0.0062308888814376845,
+            "NDCG@20": 0.007509765549100271
+            }
+        }
+        },
+        {
+        "id": "0529191045",
+        "params": {
+            "early_stop_patience": 5,
+            "config": "configs/t5/Amazon2014Sports_550_LOU.yaml",
+            "seed": 3
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.4965803138991438
+            },
+            "valid": {
+            "HITRATE@1": 0.00952300691050059,
+            "HITRATE@5": 0.031069161188830834,
+            "HITRATE@10": 0.049216248103826056,
+            "HITRATE@20": 0.06899264003595708,
+            "NDCG@5": 0.020270242423105458,
+            "NDCG@10": 0.02591911773128023,
+            "NDCG@20": 0.031137750027832593
+            },
+            "best": {
+            "HITRATE@1": 0.006432945671105118,
+            "HITRATE@5": 0.022248440923647396,
+            "HITRATE@10": 0.03545142985560987,
+            "HITRATE@20": 0.05140738243721557,
+            "NDCG@5": 0.014322320705612387,
+            "NDCG@10": 0.018581867894467842,
+            "NDCG@20": 0.02265487408609871
+            }
+        }
+        },
+        {
+        "id": "0529191046",
+        "params": {
+            "early_stop_patience": 5,
+            "config": "configs/t5/Amazon2014Sports_550_LOU.yaml",
+            "seed": 4
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.7584793496931168
+            },
+            "valid": {
+            "HITRATE@1": 0.002612506320579808,
+            "HITRATE@5": 0.008174616551491657,
+            "HITRATE@10": 0.013174897466149783,
+            "HITRATE@20": 0.01780998932524299,
+            "NDCG@5": 0.005404334551960278,
+            "NDCG@10": 0.006953477626757994,
+            "NDCG@20": 0.008131260518324737
+            },
+            "best": {
+            "HITRATE@1": 0.002387774594078319,
+            "HITRATE@5": 0.006011573683914827,
+            "HITRATE@10": 0.009775830102814765,
+            "HITRATE@20": 0.012641159615708747,
+            "NDCG@5": 0.004281971500866788,
+            "NDCG@10": 0.005476477874638733,
+            "NDCG@20": 0.006218560451057843
+            }
+        }
+        }
+    ],
+    "timestamp": "2026-05-30T03:19:32",
+    "config": {
+        "monitors": [
+        "LOSS",
+        "HitRate@1",
+        "HitRate@5",
+        "HitRate@10",
+        "HitRate@20",
+        "NDCG@5",
+        "NDCG@10",
+        "NDCG@20"
+        ],
+        "which4best": "NDCG@10",
+        "config": "configs/t5/Amazon2014Sports_550_LOU.yaml",
+        "root": "../../data",
+        "dataset": "Amazon2014Sports_550_LOU",
+        "tasktag": null,
+        "ranking": "full",
+        "retain_seen": false,
+        "optimizer": "AdamW",
+        "optim_first_moment_decay": 0.9,
+        "optim_second_moment_decay": 0.999,
+        "weight_decay": 0.001,
+        "lr": 0.0005,
+        "batch_size": 512,
+        "gradient_accumulation_steps": 1,
+        "epochs": 500,
+        "eval_valid": true,
+        "eval_test": false,
+        "eval_freq": 5,
+        "early_stop_patience": 5,
+        "seed": 4,
+        "maxlen": 50,
+        "embedding_dim": 128,
+        "attention_size": 64,
+        "intermediate_size": 256,
+        "num_heads": 4,
+        "num_layers": 6,
+        "dropout_rate": 0.1,
+        "num_beams": 20
+    }
+    }
+
+]
