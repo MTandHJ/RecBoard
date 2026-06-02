@@ -1,6 +1,6 @@
 # Data
 root: ../../data
-dataset: Amazon2014Beauty_550_LOU
+dataset: Amazon2014Sports_550_LOU
 
 # Model
 maxlen: 50

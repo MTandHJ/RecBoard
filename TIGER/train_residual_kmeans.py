@@ -79,47 +79,49 @@ class RKMeans(freerec.models.RecSysArch):
 
     @torch.no_grad()
     def generate_sem_ids(self):
-        if self._sem_ids is None:
-            from scipy.cluster.vq import kmeans2
+        is_training = self.training
+        self.eval()
+        try:
+            if self._sem_ids is None:
+                from scipy.cluster.vq import kmeans2
 
-            sem_ids = []
-            z = self.Item.embeddings.weight.cpu().numpy()
+                sem_ids = []
+                z = self.Item.embeddings.weight.cpu().numpy()
 
-            for l in range(cfg.num_codebooks):
-                codebook, codes = kmeans2(
-                    z,
-                    k=cfg.num_codewords,
-                    iter=cfg.num_iters,
-                    minit=cfg.kmeans_init_method,
-                )
-                sem_ids.append(codes)
-                q = codebook[codes]
-                z = z - q
+                for l in range(cfg.num_codebooks):
+                    codebook, codes = kmeans2(
+                        z,
+                        k=cfg.num_codewords,
+                        iter=cfg.num_iters,
+                        minit=cfg.kmeans_init_method,
+                    )
+                    sem_ids.append(codes)
+                    q = codebook[codes]
+                    z = z - q
 
-            sem_ids = [torch.from_numpy(ids) for ids in sem_ids]
-            sem_ids = torch.stack(sem_ids, dim=-1).long()
-            self._sem_ids = sem_ids
-        return self._sem_ids
+                sem_ids = [torch.from_numpy(ids) for ids in sem_ids]
+                sem_ids = torch.stack(sem_ids, dim=-1).long()
+                self._sem_ids = sem_ids
+            return self._sem_ids
+        finally:
+            self.train(is_training)
 
 
 class CoachForRKMeans(freerec.launcher.Coach):
-    def save_checkpoint(self, epoch):
-        super().save_checkpoint(epoch)
-        if freerec.ddp.is_main_process():
-            sem_ids = self.get_res_sys_arch().generate_sem_ids()
-            sid_vocab = {
-                SemIDConverter.format(item_id): tuple(
-                    SemIDConverter.SID_FORMAT.format(level=level, id=sid)
-                    for level, sid in enumerate(sids)
-                )
-                for item_id, sids in enumerate(sem_ids.tolist())
-            }
-            with open(
-                os.path.join(self.cfg.LOG_PATH, "sid_vocab.json"),
-                "w",
-                encoding="utf-8",
-            ) as file:
-                json.dump(sid_vocab, file)
+
+    @freerec.ddp.main_process_only
+    def save_sid_vocab(self) -> None:
+        sem_ids = self.get_res_sys_arch().generate_sem_ids()
+        sid_vocab = {}
+        for item_id, sids in enumerate(sem_ids.tolist()):
+            sids = [
+                SemIDConverter.SID_FORMAT.format(level=level, id=sid)
+                for level, sid in enumerate(sids)
+            ]
+            sid_vocab[SemIDConverter.format(item_id)] = tuple(sids)
+        vocab_file = os.path.join(self.cfg.LOG_PATH, "sid_vocab.json")
+        with open(vocab_file, "w", encoding="utf-8") as file:
+            json.dump(sid_vocab, file)
 
     def set_other(self):
         self.register_metric("RECON_LOSS", lambda x: x, best_caster=min)
@@ -129,7 +131,7 @@ class CoachForRKMeans(freerec.launcher.Coach):
             self.register_metric(f"PPL#{i}", lambda x: x, best_caster=max)
 
     def train_per_epoch(self, epoch: int):
-        pass
+        self.save_sid_vocab()
 
     def evaluate(self, epoch, step=-1, mode="valid"):
         sem_ids = self.model.generate_sem_ids().cpu()

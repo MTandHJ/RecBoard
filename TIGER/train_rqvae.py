@@ -192,6 +192,7 @@ class RQVAE(freerec.models.RecSysArch):
 
 
 class CoachForRQVAE(freerec.launcher.Coach):
+
     @freerec.ddp.main_process_only
     def save_sid_vocab(self) -> None:
         sem_ids = self.get_res_sys_arch().generate_sem_ids()
