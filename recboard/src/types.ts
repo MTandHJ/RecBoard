@@ -1,6 +1,10 @@
 export interface Run {
   id: string;
-  params: { config: string; seed: number };
+  params: {
+    config?: string;
+    seed: number;
+    [key: string]: unknown;
+  };
   metrics: {
     train: Record<string, number>;
     valid: Record<string, number>;
