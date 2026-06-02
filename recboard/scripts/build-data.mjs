@@ -65,6 +65,22 @@ function aggregateRuns(runs) {
   return result;
 }
 
+function normalizeMetrics(metrics = {}) {
+  return {
+    train: metrics.train || {},
+    valid: metrics.valid || {},
+    test: metrics.test || {},
+    best: metrics.best || {},
+  };
+}
+
+function normalizeRun(run) {
+  return {
+    ...run,
+    metrics: normalizeMetrics(run.metrics),
+  };
+}
+
 function main() {
   mkdirSync(dirname(OUTPUT_FILE), { recursive: true });
   if (!existsSync(BENCHMARK_DIR)) {
@@ -100,13 +116,14 @@ function main() {
       const evaluations = Array.isArray(content) ? content : [content];
 
       for (const evaluation of evaluations) {
+        const runs = (evaluation.runs || []).map(normalizeRun);
         results.push({
           model,
           description: evaluation.description || "",
           dataset: evaluation.dataset || dataset,
           tags: evaluation.tags || [],
-          bestMetrics: aggregateRuns(evaluation.runs || []),
-          runs: evaluation.runs || [],
+          bestMetrics: aggregateRuns(runs),
+          runs,
           config: filterConfig(evaluation.config || {}),
           timestamp: evaluation.timestamp || "",
         });
