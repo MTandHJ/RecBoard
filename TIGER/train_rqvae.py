@@ -123,7 +123,7 @@ class RQVAE(freerec.models.RecSysArch):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0.0)
 
-        # codebook initlization
+        # codebook initialization
         with torch.no_grad():
             for codebook in self.quantizer.codebooks:
                 codebook.requires_kmeans_init_ = True
