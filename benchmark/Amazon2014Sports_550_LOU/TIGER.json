@@ -202,6 +202,210 @@
         "dropout_rate": 0.1,
         "num_beams": 20
     }
+    },
+
+    {
+    "description": "R-KMeans",
+    "dataset": "Amazon2014Sports_550_LOU",
+    "tags": ["Generative", "CE", "128"],
+    "runs": [
+        {
+        "id": "0601100259",
+        "params": {
+            "early_stop_patience": 5,
+            "config": "configs/t5/Amazon2014Toys_550_LOU.yaml",
+            "seed": 0
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.5055429522531998
+            },
+            "valid": {
+            "HITRATE@1": 0.008708354401932693,
+            "HITRATE@5": 0.02921512444519355,
+            "HITRATE@10": 0.04548008315073881,
+            "HITRATE@20": 0.06362717006573403,
+            "NDCG@5": 0.018692875322521896,
+            "NDCG@10": 0.02388921602066062,
+            "NDCG@20": 0.02839051108635492
+            },
+            "best": {
+            "HITRATE@1": 0.005309287038597674,
+            "HITRATE@5": 0.019664026068880274,
+            "HITRATE@10": 0.031350075846957697,
+            "HITRATE@20": 0.04587336367211641,
+            "NDCG@5": 0.01252081932475831,
+            "NDCG@10": 0.016273344807647857,
+            "NDCG@20": 0.01997555277501139
+            }
+        }
+        },
+        {
+        "id": "0601100300",
+        "params": {
+            "early_stop_patience": 5,
+            "config": "configs/t5/Amazon2014Toys_550_LOU.yaml",
+            "seed": 1
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.4294886407697547
+            },
+            "valid": {
+            "HITRATE@1": 0.010112927692566998,
+            "HITRATE@5": 0.03258610034271588,
+            "HITRATE@10": 0.050817461655149165,
+            "HITRATE@20": 0.07107140850609585,
+            "NDCG@5": 0.02133289531992623,
+            "NDCG@10": 0.027044390494672492,
+            "NDCG@20": 0.03230713945880714
+            },
+            "best": {
+            "HITRATE@1": 0.007331872577111074,
+            "HITRATE@5": 0.022388898252710825,
+            "HITRATE@10": 0.035760435979549414,
+            "HITRATE@20": 0.05064891286027305,
+            "NDCG@5": 0.014981325439297956,
+            "NDCG@10": 0.019266887550722638,
+            "NDCG@20": 0.023063677127166803
+            }
+        }
+        },
+        {
+        "id": "0601100301",
+        "params": {
+            "early_stop_patience": 5,
+            "config": "configs/t5/Amazon2014Toys_550_LOU.yaml",
+            "seed": 2
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.5475455809998466
+            },
+            "valid": {
+            "HITRATE@1": 0.008062250688240912,
+            "HITRATE@5": 0.027501545030619697,
+            "HITRATE@10": 0.043036125625035115,
+            "HITRATE@20": 0.061295578403281085,
+            "NDCG@5": 0.017519949823559332,
+            "NDCG@10": 0.022536369107688328,
+            "NDCG@20": 0.027178183524898213
+            },
+            "best": {
+            "HITRATE@1": 0.005309287038597674,
+            "HITRATE@5": 0.018456093038934772,
+            "HITRATE@10": 0.02943985617169504,
+            "HITRATE@20": 0.04312040002247317,
+            "NDCG@5": 0.011900615401465984,
+            "NDCG@10": 0.015438452682821152,
+            "NDCG@20": 0.018911296122612876
+            }
+        }
+        },
+        {
+        "id": "0601100303",
+        "params": {
+            "early_stop_patience": 5,
+            "config": "configs/t5/Amazon2014Toys_550_LOU.yaml",
+            "seed": 3
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.4864631066247906
+            },
+            "valid": {
+            "HITRATE@1": 0.008624080004494635,
+            "HITRATE@5": 0.02994550255632339,
+            "HITRATE@10": 0.04674419911230968,
+            "HITRATE@20": 0.06564975560424743,
+            "NDCG@5": 0.019075092903361762,
+            "NDCG@10": 0.02452262224133172,
+            "NDCG@20": 0.02944498194091822
+            },
+            "best": {
+            "HITRATE@1": 0.006292488342041688,
+            "HITRATE@5": 0.01991684926119445,
+            "HITRATE@10": 0.03146244171020844,
+            "HITRATE@20": 0.04514298556098657,
+            "NDCG@5": 0.01303432781034336,
+            "NDCG@10": 0.016759259043479812,
+            "NDCG@20": 0.020242767481011843
+            }
+        }
+        },
+        {
+        "id": "0601100304",
+        "params": {
+            "early_stop_patience": 5,
+            "config": "configs/t5/Amazon2014Toys_550_LOU.yaml",
+            "seed": 4
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.5272834156617021
+            },
+            "valid": {
+            "HITRATE@1": 0.008286982414742402,
+            "HITRATE@5": 0.027361087701556267,
+            "HITRATE@10": 0.043906961065228386,
+            "HITRATE@20": 0.0628967919546042,
+            "NDCG@5": 0.01770147415511869,
+            "NDCG@10": 0.022891727517519018,
+            "NDCG@20": 0.027727843368630763
+            },
+            "best": {
+            "HITRATE@1": 0.0055059272992864765,
+            "HITRATE@5": 0.019214562615877298,
+            "HITRATE@10": 0.03177144783414799,
+            "HITRATE@20": 0.04685656497556043,
+            "NDCG@5": 0.012429081700117282,
+            "NDCG@10": 0.016481544132399835,
+            "NDCG@20": 0.020326193104155833
+            }
+        }
+        }
+    ],
+    "timestamp": "2026-06-02T01:26:48",
+    "config": {
+        "monitors": [
+        "LOSS",
+        "HitRate@1",
+        "HitRate@5",
+        "HitRate@10",
+        "HitRate@20",
+        "NDCG@5",
+        "NDCG@10",
+        "NDCG@20"
+        ],
+        "which4best": "NDCG@10",
+        "config": "configs/t5/Amazon2014Sports_550_LOU.yaml",
+        "root": "../../data",
+        "dataset": "Amazon2014Sports_550_LOU",
+        "tasktag": null,
+        "ranking": "full",
+        "retain_seen": false,
+        "optimizer": "AdamW",
+        "optim_first_moment_decay": 0.9,
+        "optim_second_moment_decay": 0.999,
+        "weight_decay": 0.001,
+        "lr": 0.0005,
+        "batch_size": 512,
+        "gradient_accumulation_steps": 1,
+        "epochs": 500,
+        "eval_valid": true,
+        "eval_test": false,
+        "eval_freq": 5,
+        "early_stop_patience": 5,
+        "seed": 4,
+        "maxlen": 50,
+        "embedding_dim": 128,
+        "attention_size": 64,
+        "intermediate_size": 256,
+        "num_heads": 4,
+        "num_layers": 6,
+        "dropout_rate": 0.1,
+        "num_beams": 20
+    }
     }
 
 ]
