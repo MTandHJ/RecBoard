@@ -133,22 +133,21 @@ class CoachForLightGCN(freerec.launcher.Coach):
             self.optimizer = torch.optim.SGD(
                 self.model.parameters(),
                 lr=self.cfg.lr,
-                momentum=self.cfg.sgd_momentum,
-                nesterov=self.cfg.sgd_nesterov,
+                momentum=self.cfg.optim_first_moment_decay,
                 # weight_decay=self.cfg.weight_decay
             )
         elif self.cfg.optimizer.lower() == "adam":
             self.optimizer = torch.optim.Adam(
                 self.model.parameters(),
                 lr=self.cfg.lr,
-                betas=(self.cfg.adam_beta1, self.cfg.adam_beta2),
+                betas=(self.cfg.optim_first_moment_decay, self.cfg.optim_second_moment_decay),
                 # weight_decay=self.cfg.weight_decay
             )
         elif self.cfg.optimizer.lower() == "adamw":
             self.optimizer = torch.optim.AdamW(
                 self.model.parameters(),
                 lr=self.cfg.lr,
-                betas=(self.cfg.adam_beta1, self.cfg.adam_beta2),
+                betas=(self.cfg.optim_first_moment_decay, self.cfg.optim_second_moment_decay),
                 # weight_decay=self.cfg.weight_decay
             )
         else:
