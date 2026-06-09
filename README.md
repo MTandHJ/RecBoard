@@ -6,7 +6,7 @@
 <h4 align="center">
     <p>
         <a href="https://github.com/MTandHJ/freerec">FreeRec</a> |
-        <a href="https://painted-lilac-f2f.notion.site/Baselines-43ed27a7e7d54e3390fbbcbb293df485?pvs=4">LeaderBoard</a>
+        <a href="https://www.mtandhj.com/RecBoard">LeaderBoard</a>
     </p>
 </h4>
 
@@ -37,6 +37,3 @@ The directory structure should be organized as follows, assuming that `root` is 
             └── ...
 	└── ...
 ```
-
->![NOTE]
-> For details on how to convert the raw data `Amazon2014Beauty.zip` into the training dataset `Amazon2014Beauty_550_LOU`, please refer to [Dataset Processing](https://github.com/MTandHJ/freerec/blob/master/dataset%20processing.md).
