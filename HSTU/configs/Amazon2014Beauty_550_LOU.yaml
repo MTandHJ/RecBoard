@@ -11,8 +11,6 @@ linear_hidden_dim: 4
 attention_dim: 4
 emb_dropout_rate: 0.5
 hidden_dropout_rate: 0.1
-beta1: 0.9
-beta2: 0.98
 num_negs: 512
 temperature: 0.1
 num_buckets: 128

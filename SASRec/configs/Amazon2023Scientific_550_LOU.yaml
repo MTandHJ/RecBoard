@@ -1,0 +1,22 @@
+# Data
+root: ../../data
+dataset: Amazon2023Scientific_550_LOU
+
+# Model
+maxlen: 50
+num_heads: 1
+num_blocks: 2
+embedding_dim: 64
+dropout_rate: 0.3
+loss: BCE
+
+# Training
+epochs: 300
+batch_size: 512
+optimizer: adam
+lr: 0.0001
+weight_decay: 1e-06
+
+# Evaluation
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, HitRate@50, NDCG@5, NDCG@10, NDCG@20, NDCG@50]
+which4best: NDCG@10

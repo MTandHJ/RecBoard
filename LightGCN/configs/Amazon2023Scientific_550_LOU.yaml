@@ -1,0 +1,18 @@
+# Data
+root: ../../data
+dataset: Amazon2023Scientific_550_LOU
+
+# Model
+embedding_dim: 64
+num_layers: 3
+
+# Training
+epochs: 1000
+batch_size: 2048
+optimizer: adam
+lr: 0.001
+weight_decay: 0.001
+
+# Evaluation
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, HitRate@50, NDCG@5, NDCG@10, NDCG@20, NDCG@50]
+which4best: NDCG@10

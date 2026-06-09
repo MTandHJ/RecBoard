@@ -11,8 +11,6 @@ linear_hidden_dim: 25
 attention_dim: 25
 emb_dropout_rate: 0.2
 hidden_dropout_rate: 0.2
-beta1: 0.9
-beta2: 0.98
 num_negs: 128
 
 # Training

@@ -1,0 +1,19 @@
+# Data
+root: ../../data
+dataset: Amazon2023Games_550_LOU
+
+# Model
+embedding_dim: 8
+hidden_dims: "64,32,16,8"
+num_negs: 4
+
+# Training
+epochs: 200
+batch_size: 1024
+optimizer: adam
+lr: 0.005
+weight_decay: 1e-06
+
+# Evaluation
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, HitRate@50, NDCG@5, NDCG@10, NDCG@20, NDCG@50]
+which4best: NDCG@10
