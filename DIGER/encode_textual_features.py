@@ -212,7 +212,7 @@ class TextualFeatureEncoder:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Encode item textual features.")
-    parser.add_argument("--root", type=str, default="../../RecData")
+    parser.add_argument("--root", type=str, default="../../data")
     parser.add_argument("--dataset", type=str, default="Amazon2014Beauty_550_LOU")
     parser.add_argument("--item-file", type=str, default="item.txt")
     parser.add_argument("--fields", type=str, nargs="+", default=("TITLE", "CATEGORIES", "BRAND"))
