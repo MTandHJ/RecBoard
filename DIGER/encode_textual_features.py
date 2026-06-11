@@ -149,7 +149,9 @@ class TextualFeatureEncoder:
 
         model = model.to(self.device)
         features = []
-        for start in tqdm(range(0, len(texts), self.batch_size), desc="Encoding"):
+        batch_starts = range(0, len(texts), self.batch_size)
+        num_batches = (len(texts) + self.batch_size - 1) // self.batch_size
+        for start in tqdm(batch_starts, total=num_batches, desc="Encoding", unit="batch"):
             batch_texts = list(texts[start : start + self.batch_size])
             tokenizer_kwargs = {
                 "return_tensors": "pt",
