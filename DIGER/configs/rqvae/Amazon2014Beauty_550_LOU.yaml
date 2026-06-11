@@ -1,0 +1,30 @@
+# Data
+root: ../../RecData
+dataset: Amazon2014Beauty_550_LOU
+tasktag: NEXTITEM
+item_feat_file: sentence-t5-xl_title_categories_brand.pkl
+
+# ID tokenizer
+num_codebooks: 3
+num_codewords: 256
+codebook_dim: 256
+hidden_dims: 2048,1024,512
+commit_weight: 0.25
+dist: l2
+tokenizer_dropout_rate: 0.0
+bn: false
+sk_epsilons: 0.003,0.003,0.003
+sk_iters: 50
+vq_loss_weight: 1.0
+checkpoint_file: rqvae.pth
+
+# Training
+epochs: 1000
+optimizer: AdamW
+batch_size: 1024
+lr: 1.e-3
+weight_decay: 0.0
+
+# Evaluation
+monitors: [RECON_LOSS, VQ_LOSS, COLLISION_RATE]
+which4best: COLLISION_RATE
