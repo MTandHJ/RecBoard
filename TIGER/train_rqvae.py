@@ -131,7 +131,7 @@ class RQVAE(freerec.models.RecSysArch):
             self.encoder.to(cfg.device)
             self.quantizer.to(cfg.device)
 
-            x = self.Item.semFeats.weight[: cfg.num_codewords * 5].to(cfg.device)
+            x = self.Item.embeddings.weight[: cfg.num_codewords * 5].to(cfg.device)
             z = self.encode(x)
             self.quantizer(z)
 
