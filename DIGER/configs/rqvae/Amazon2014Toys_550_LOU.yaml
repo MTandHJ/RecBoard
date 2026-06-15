@@ -28,5 +28,5 @@ lr: 1.e-3
 weight_decay: 0.0
 
 # Evaluation
-monitors: [RECON_LOSS, VQ_LOSS, COLLISION_RATE]
+monitors: [LOSS]
 which4best: COLLISION_RATE

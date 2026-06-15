@@ -48,7 +48,6 @@ cfg.set_defaults(
     lr=1.0e-3,
     weight_decay=0.0,
     seed=2020,
-    monitors=["RECON_LOSS", "VQ_LOSS", "COLLISION_RATE"],
     which4best="COLLISION_RATE",
 )
 cfg.compile()
