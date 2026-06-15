@@ -21,6 +21,7 @@ weight_decay: 1.e-3
 
 # Evaluation
 num_beams: 20
+apply_constrained_beam_search: true
 # HITRate@50 and NDCG@50 require `num_beams` >= 50.
 monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, NDCG@5, NDCG@10, NDCG@20]
 which4best: NDCG@10

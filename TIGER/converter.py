@@ -125,6 +125,7 @@ class SemIDConverter:
             sid_vocab = self.resolve_collision(sid_vocab)
         self._item_to_sids = sid_vocab
         self._sids_to_item = {sids: item for item, sids in sid_vocab.items()}
+        self.max_num_sid_tokens = max(len(sids) for sids in self._sids_to_item)
 
         self._register_protocol_tokens(self._item_to_sids)
         self._sid_start_id = self.tokenizer.convert_tokens_to_ids(self.SID_START_TOKEN)
