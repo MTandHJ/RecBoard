@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional
+from typing import List, Optional
 
 import torch
 import torch.nn as nn
@@ -11,28 +11,6 @@ __all__ = [
 ]
 
 
-def activation_layer(activation: str | Callable | None) -> nn.Module | None:
-    if activation is None:
-        return None
-    if isinstance(activation, str):
-        activation = activation.lower()
-        if activation == "relu":
-            return nn.ReLU()
-        if activation == "leakyrelu":
-            return nn.LeakyReLU()
-        if activation == "sigmoid":
-            return nn.Sigmoid()
-        if activation == "silu":
-            return nn.SiLU()
-        if activation == "tanh":
-            return nn.Tanh()
-        if activation == "none":
-            return None
-    elif isinstance(activation, type) and issubclass(activation, nn.Module):
-        return activation()
-    raise NotImplementedError(f"activation function {activation!r} is not implemented")
-
-
 class MLPLayers(nn.Module):
     r"""Compact MLP used by DIGER encoders and adapters.
 
@@ -42,37 +20,29 @@ class MLPLayers(nn.Module):
         Layer dimensions including input and output sizes.
     dropout_rate : float, default=0.0
         Dropout before every linear layer.
-    activation : str or Callable, default="relu"
-        Hidden activation name.
-    bn : bool, default=False
-        Whether to apply batch normalization after hidden linear layers.
     bias : bool, default=True
         Whether linear layers use bias terms.
     """
+
+    ACT = nn.ReLU
 
     def __init__(
         self,
         hidden_dims: List[int],
         dropout_rate: float = 0.0,
-        activation: str | Callable | None = "relu",
-        bn: bool = False,
         bias: bool = True,
     ) -> None:
         super().__init__()
 
-        self.mlp_layers = nn.Sequential()
+        self.fc = nn.Sequential()
         for level, (input_dim, output_dim) in enumerate(
             zip(hidden_dims[:-1], hidden_dims[1:]),
             start=1,
         ):
-            self.mlp_layers.append(nn.Dropout(dropout_rate))
-            self.mlp_layers.append(nn.Linear(input_dim, output_dim, bias=bias))
+            self.fc.append(nn.Dropout(dropout_rate))
+            self.fc.append(nn.Linear(input_dim, output_dim, bias=bias))
             if level < len(hidden_dims) - 1:
-                if bn:
-                    self.mlp_layers.append(nn.BatchNorm1d(output_dim))
-                activation_func = activation_layer(activation)
-                if activation_func is not None:
-                    self.mlp_layers.append(activation_func)
+                self.fc.append(self.ACT())
 
         self.reset_parameters()
 
@@ -84,7 +54,7 @@ class MLPLayers(nn.Module):
                     nn.init.zeros_(module.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.mlp_layers(x)
+        return self.fc(x)
 
 
 class DIGERIDEncoder(nn.Module):
@@ -106,20 +76,16 @@ class DIGERIDEncoder(nn.Module):
         hidden_dims: List[int],
         codebook_dim: int,
         dropout_rate: float = 0.0,
-        activation: str | Callable | None = "relu",
-        bn: bool = False,
     ) -> None:
         super().__init__()
-        self.mlp = MLPLayers(
+        self.encoder = MLPLayers(
             [in_dim] + list(hidden_dims) + [codebook_dim],
             dropout_rate=dropout_rate,
-            activation=activation,
-            bn=bn,
             bias=True,
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.mlp(x)
+        return self.encoder(x)
 
 
 class DIGERIDDecoder(nn.Module):
@@ -131,20 +97,16 @@ class DIGERIDDecoder(nn.Module):
         hidden_dims: List[int],
         codebook_dim: int,
         dropout_rate: float = 0.0,
-        activation: str | Callable | None = "relu",
-        bn: bool = False,
     ) -> None:
         super().__init__()
-        self.mlp = MLPLayers(
-            [codebook_dim] + list(hidden_dims)[::-1] + [out_dim],
+        self.decoder = MLPLayers(
+            [codebook_dim] + list(hidden_dims) + [out_dim],
             dropout_rate=dropout_rate,
-            activation=activation,
-            bn=bn,
             bias=True,
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.mlp(x)
+        return self.decoder(x)
 
 
 class DIGERT5(nn.Module):

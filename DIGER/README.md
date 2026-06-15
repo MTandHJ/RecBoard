@@ -19,7 +19,7 @@ python train_rqvae.py --config=configs/rqvae/Amazon2014Beauty_550_LOU.yaml
 3. Train or evaluate DIGER:
 
 ```bash
-python main.py --config=configs/Amazon2014Beauty_550_LOU.yaml --rqvae-path /path/to/rqvae.pt
+python main.py --config=configs/diger/Amazon2014Beauty_550_LOU.yaml --rqvae-path /path/to/rqvae.pt
 ```
 
 ## Hyperparameters

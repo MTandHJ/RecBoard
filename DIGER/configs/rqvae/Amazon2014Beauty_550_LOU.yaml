@@ -2,31 +2,26 @@
 root: ../../data
 dataset: Amazon2014Beauty_550_LOU
 tasktag: NEXTITEM
-item_feat_file: sentence-t5-xl_title_categories_brand.pkl
+sem_feat_file: sentence-t5-xl_title_categories_brand.pkl
 
-# ID tokenizer
-num_codebooks: 3
+# Model
 num_codewords: 256
-codebook_dim: 256
-hidden_dims: 2048,1024,512
-commit_weight: 0.25
-dist: l2
-tokenizer_dropout_rate: 0.0
-bn: False
-sk_epsilons: 0.003,0.003,0.003
+num_codebooks: 3
+codebook_dim: 128
+hidden_dims: 512,256,128
+apply_shared_codebook: false
+sk_epsilons: 0.,0.,0.
 sk_iters: 50
-vq_loss_weight: 1.0
-kmeans_init: True
-kmeans_iters: 100
-checkpoint_file: rqvae.pt
+commit_weight: 0.5
+dropout_rate: 0.1
 
 # Training
-epochs: 1000
-optimizer: AdamW
+epochs: 10000
 batch_size: 1024
+optimizer: AdamW
 lr: 1.e-3
 weight_decay: 0.0
 
 # Evaluation
-monitors: [LOSS]
+eval_freq: 100
 which4best: COLLISION_RATE

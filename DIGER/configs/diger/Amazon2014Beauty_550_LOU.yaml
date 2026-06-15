@@ -2,7 +2,7 @@
 root: ../../data
 dataset: Amazon2014Beauty_550_LOU
 tasktag: NEXTITEM
-item_feat_file: sentence-t5-xl_title_categories_brand.pkl
+sem_feat_file: sentence-t5-xl_title_categories_brand.pkl
 
 # T5 recommender
 maxlen: 50
@@ -12,21 +12,19 @@ intermediate_size: 512
 num_layers: 6
 num_heads: 4
 dropout_rate: 0.1
-num_beams: 20
 
 # End-to-end ID tokenizer
 num_codebooks: 3
 num_codewords: 256
-codebook_dim: 256
-hidden_dims: 2048,1024,512
+codebook_dim: 128
+hidden_dims: 512,256,128
+apply_shared_codebook: false
 commit_weight: 0.25
-dist: l2
 tokenizer_dropout_rate: 0.0
-bn: false
 sk_epsilons: 0.003,0.003,0.003
 sk_iters: 50
 rqvae_path: null
-freeze_id_encoder: true
+freeze_id_encoder: false
 
 # DIGER losses
 code_loss_weight: 1.0
@@ -35,26 +33,13 @@ vq_loss_weight: 1.0
 
 # Gumbel relaxation
 gumbel_tau: 2.0
-use_gumbel: true
-use_indicator_ste: true
-stop_gumbel_sampling_epoch: 0
-gumbel_hard_switch_epoch: 0
-
-# FrqUD / Both
-use_adaptive_selection: true
 hot_threshold_ratio: 1.5
 usage_momentum: 0.99
-
-# SDUD / Both
-use_learnable_sigma_gumbel: true
-use_simple_uncertainty_loss: false
-sigma_reg_weight: 2.0
 initial_std: 1.0
 sigma_lambda: 0.5
-noise_type: gumbel
-use_dynamic_sigma_lr: true
 
 # Training
+seed: 2020
 epochs: 120
 optimizer: AdamW
 batch_size: 256
@@ -64,5 +49,6 @@ lr_sigma: 1.e-3
 weight_decay: 0.05
 
 # Evaluation
-monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, NDCG@5, NDCG@10, NDCG@20, NUM_INVALID]
+num_beams: 20
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, NDCG@5, NDCG@10, NDCG@20]
 which4best: NDCG@10
