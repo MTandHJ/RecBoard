@@ -23,6 +23,8 @@ cfg.add_argument("--bn", type=eval, default=False)
 cfg.add_argument("--sk-epsilons", type=str, default="0.003,0.003,0.003")
 cfg.add_argument("--sk-iters", type=int, default=50)
 cfg.add_argument("--vq-loss-weight", "--quant-loss-weight", type=float, default=1.0)
+cfg.add_argument("--kmeans-init", type=eval, default=True)
+cfg.add_argument("--kmeans-iters", type=int, default=100)
 cfg.add_argument("--checkpoint-file", type=str, default="rqvae.pt")
 
 cfg.add_argument("--gumbel-hard-switch-epoch", type=int, default=50)
@@ -98,6 +100,7 @@ class DIGERIDTokenizer(freerec.models.RecSysArch):
             dropout_rate=cfg.tokenizer_dropout_rate,
             bn=bool(cfg.bn),
         )
+        self.initialize_codebooks()
 
     def sure_trainpipe(self, batch_size: int):
         return (
@@ -133,6 +136,47 @@ class DIGERIDTokenizer(freerec.models.RecSysArch):
         }
 
     @torch.no_grad()
+    def initialize_codebooks(self) -> None:
+        r"""Initialize RQ codebooks with TIGER-style warm-start samples."""
+        if not cfg.kmeans_init:
+            return
+
+        sample_size = min(self.Item.count, cfg.num_codewords * 5)
+        x = self.Item.embeddings.weight[:sample_size]
+        z = self.id_encoder(x)
+        residual = z.detach()
+        for quantizer in self.id_quantizer.quantizers:
+            centers = self.kmeans(residual.view(-1, cfg.codebook_dim), quantizer.num_codewords)
+            quantizer.codebook.weight.data.copy_(centers)
+            level_q, _, _, _, _, _ = quantizer(residual)
+            residual = residual - level_q
+
+    @staticmethod
+    def kmeans(samples: torch.Tensor, num_clusters: int) -> torch.Tensor:
+        from k_means_constrained import KMeansConstrained
+
+        if samples.size(0) < num_clusters:
+            raise ValueError(
+                f"k-means requires at least {num_clusters} samples, but got {samples.size(0)}"
+            )
+
+        samples_np = samples.detach().cpu().numpy()
+        size_min = max(1, min(len(samples_np) // (num_clusters * 2), 50))
+        cluster = KMeansConstrained(
+            n_clusters=num_clusters,
+            size_min=size_min,
+            max_iter=cfg.kmeans_iters,
+            n_init=10,
+            n_jobs=10,
+            verbose=False,
+        ).fit(samples_np)
+        return torch.as_tensor(
+            cluster.cluster_centers_,
+            dtype=samples.dtype,
+            device=samples.device,
+        )
+
+    @torch.no_grad()
     def generate_sem_ids(self) -> torch.Tensor:
         was_training = self.training
         self.eval()
@@ -160,6 +204,8 @@ class DIGERIDTokenizer(freerec.models.RecSysArch):
                 "num_codebooks": cfg.num_codebooks,
                 "num_codewords": cfg.num_codewords,
                 "dist": cfg.dist,
+                "kmeans_init": cfg.kmeans_init,
+                "kmeans_iters": cfg.kmeans_iters,
             },
         }
 

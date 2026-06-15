@@ -43,7 +43,7 @@ cfg.add_argument("--tokenizer-dropout-rate", "--dropout-prob", type=float, defau
 cfg.add_argument("--bn", type=eval, default=False)
 cfg.add_argument("--sk-epsilons", type=str, default="0.003,0.003,0.003")
 cfg.add_argument("--sk-iters", type=int, default=50)
-cfg.add_argument("--rqvae-path", type=str, default=None)
+cfg.add_argument("--rqvae-path", type=str, default="rqvae.pt")
 cfg.add_argument("--freeze-id-encoder", type=eval, default=False)
 
 cfg.add_argument("--lr-rec", type=float, default=None)

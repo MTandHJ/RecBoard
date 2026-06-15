@@ -1,31 +1,31 @@
 # Data
-root: ../../RecData
-dataset: Amazon2014Beauty_550_LOU
+root: ../../data
+dataset: Yelp2018_10100_LOU
 tasktag: NEXTITEM
 item_feat_file: sentence-t5-xl_title_categories_brand.pkl
 
 # ID tokenizer
 num_codebooks: 3
 num_codewords: 256
-codebook_dim: 256
-hidden_dims: 2048,1024,512
-commit_weight: 0.25
+codebook_dim: 128
+hidden_dims: 512,256,128
+commit_weight: 0.5
 dist: l2
 tokenizer_dropout_rate: 0.0
-bn: False
+bn: false
 sk_epsilons: 0.003,0.003,0.003
 sk_iters: 50
 vq_loss_weight: 1.0
-kmeans_init: True
+kmeans_init: true
 kmeans_iters: 100
 checkpoint_file: rqvae.pt
 
 # Training
-epochs: 1000
+epochs: 10000
 optimizer: AdamW
-batch_size: 1024
+batch_size: 4096
 lr: 1.e-3
-weight_decay: 0.0
+weight_decay: 1.e-4
 
 # Evaluation
 monitors: [RECON_LOSS, VQ_LOSS, COLLISION_RATE]
