@@ -1,0 +1,24 @@
+# Data
+root: ../../data
+dataset: Amazon2014Sports_550_LOU
+tasktag: NEXTITEM
+sem_feat_file: sentence-t5-xl_title_categories_brand.pkl
+
+# Model
+num_codewords: 256
+num_codebooks: 3
+rec_loss_weight: 1.0
+sc_loss_weight: 0.1
+pd_loss_weight: 0.05
+pd_temperature: 2.0
+
+# Training
+epochs: 10000
+batch_size: 1024
+optimizer: AdamW
+lr: 5.e-4
+weight_decay: 0.0
+
+# Evaluation
+eval_freq: 100
+which4best: PPL

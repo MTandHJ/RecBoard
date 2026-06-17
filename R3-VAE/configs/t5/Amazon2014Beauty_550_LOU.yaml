@@ -1,0 +1,27 @@
+# Data
+root: ../../data
+dataset: Amazon2014Beauty_550_LOU
+
+# Model
+maxlen: 50
+embedding_dim: 128
+attention_size: 64
+intermediate_size: 256
+num_layers: 6
+num_heads: 4
+dropout_rate: 0.1
+sid_vocab_file: sid_vocab.json
+
+# Training
+epochs: 300
+optimizer: AdamW
+batch_size: 512
+lr: 5.e-4
+weight_decay: 1.e-3
+
+# Evaluation
+num_beams: 20
+apply_constrained_beam_search: true
+# HITRate@50 and NDCG@50 require `num_beams` >= 50.
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, NDCG@5, NDCG@10, NDCG@20]
+which4best: NDCG@10
