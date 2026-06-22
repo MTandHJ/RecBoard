@@ -24,7 +24,7 @@ tokenizer_dropout_rate: 0.0
 sk_epsilons: 0.003,0.003,0.003
 sk_iters: 50
 rqvae_path: null
-freeze_id_encoder: false
+freeze_id_encoder: true
 
 # DIGER losses
 code_loss_weight: 1.0
@@ -39,7 +39,6 @@ initial_std: 1.0
 sigma_lambda: 0.5
 
 # Training
-seed: 2020
 epochs: 120
 optimizer: AdamW
 batch_size: 256
