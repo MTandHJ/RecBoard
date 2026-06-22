@@ -174,7 +174,17 @@ class DIGER(freerec.models.SeqRecArch):
             )
 
         self.id_encoder.load_state_dict(state["encoder"])
-        self.id_quantizer.load_state_dict(state["quantizer"], strict=False)
+        missing, unexpected = self.id_quantizer.load_state_dict(state["quantizer"], strict=False)
+
+        if unexpected:
+            freerec.utils.infoLogger(
+                f"[ETEGRec] >>> ignored unexpected RQ-VAE checkpoint keys: {unexpected}"
+            )
+        if missing:
+            freerec.utils.infoLogger(
+                f"[ETEGRec] >>> missing RQ-VAE checkpoint keys: {missing}"
+            )
+
         if cfg.freeze_id_encoder:
             self.id_encoder.requires_grad_(False)
 
@@ -474,6 +484,10 @@ class CoachForDIGER(freerec.launcher.Coach):
             )
 
         model.refresh_sem_ids(verbose=True)
+
+    def evaluate(self, epoch, step = -1, mode = "valid"):
+        self.get_res_sys_arch().refresh_sem_ids(verbose=True)
+        return super().evaluate(epoch, step, mode)
 
 
 def main() -> None:
