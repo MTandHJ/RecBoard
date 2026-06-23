@@ -10,13 +10,14 @@ num_codewords: 256
 num_codebooks: 4
 codebook_dim: 32
 hidden_dims: 512,256,128
-apply_kmeans_init: True
-sk_epsilons: '0.,0.,0.,0.003'
+apply_kmeans_init: true
+sk_epsilons: 0.,0.,0.,0.003
 sk_iters: 50
 
 # Training
 epochs: 20000
 batch_size: 1024
+optimizer: AdamW
 lr: 1.e-3
 weight_decay: 0.1
 dropout_rate: 0.
