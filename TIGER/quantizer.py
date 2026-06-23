@@ -112,14 +112,14 @@ class ResidualQuantizer(nn.Module):
     def commit(self, x: torch.Tensor, y: torch.Tensor):
         return F.mse_loss(x, y.detach(), reduction="sum") / x.size(0)
 
-    def step(self, r: torch.Tensor, l: int):
+    def match(self, r: torch.Tensor, l: int):
         codebook = self.codebooks[l].reinit_kmeans_codebook(r)
         dist = torch.cdist(r, codebook, p=2)  # (B, K)
         if self.sk_epsilons[l] > 0.0:
             dist = -sinkhorn_algorithm(dist, self.sk_epsilons[l], self.sk_iters)
         ids = torch.argmin(dist, dim=-1)  # (B,)
-        q = codebook[ids]
-        return ids, q
+        c = codebook[ids]
+        return ids, c
 
     def forward(self, z: torch.Tensor) -> Tuple[torch.Tensor]:
         loss = 0
@@ -129,10 +129,10 @@ class ResidualQuantizer(nn.Module):
         z_hat = 0.0  # estimation
         L = len(self.codebooks)
         for l in range(L):
-            ids_, q = self.step(z_res, l)
-            z_hat = z_hat + q
-            loss += self.commit(q, z_res) + self.commit(z_res, q) * self.commit_weight
-            z_res = z_res - q
+            ids_, c = self.match(z_res, l)
+            z_hat = z_hat + c
+            loss += self.commit(c, z_res) + self.commit(z_res, c) * self.commit_weight
+            z_res = z_res - (z_res + (c - z_res).detach())
 
             ids.append(ids_)
 

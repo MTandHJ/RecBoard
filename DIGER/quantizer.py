@@ -110,7 +110,7 @@ class ResidualQuantizer(nn.Module):
     def commit(self, x: torch.Tensor, y: torch.Tensor):
         return F.mse_loss(x, y.detach(), reduction="sum") / x.size(0)
 
-    def step(self, r: torch.Tensor, l: int):
+    def match(self, r: torch.Tensor, l: int):
         codebook = self.codebooks[l].reinit_kmeans_codebook(r)
         dist = torch.cdist(r, codebook, p=2)  # (B, K)
         if self.sk_epsilons[l] > 0.0:
@@ -131,10 +131,10 @@ class ResidualQuantizer(nn.Module):
         z_hat = 0.0  # estimation
         L = len(self.codebooks)
         for l in range(L):
-            ids_, q = self.step(z_res, l)
-            z_hat = z_hat + q
-            loss += self.commit(q, z_res) + self.commit(z_res, q) * self.commit_weight
-            z_res = z_res - q
+            ids_, c = self.match(z_res, l)
+            z_hat = z_hat + c
+            loss += self.commit(c, z_res) + self.commit(z_res, c) * self.commit_weight
+            z_res = z_res - (z_res + (c - z_res).detach())
 
             ids.append(ids_)
 
@@ -214,7 +214,7 @@ class ResidualQuantizerGumbel(ResidualQuantizer):
         self.train(is_training)
         return ids
 
-    def step(self, r: torch.Tensor, l: int, gumbel_temperature: float, hot_code_mask: torch.Tensor):
+    def match(self, r: torch.Tensor, l: int, gumbel_temperature: float, hot_code_mask: torch.Tensor):
         codebook = self.codebooks[l].reinit_kmeans_codebook(r)
         dist = torch.cdist(r, codebook, p=2)  # (B, K)
         if self.sk_epsilons[l] > 0.0:
@@ -250,7 +250,7 @@ class ResidualQuantizerGumbel(ResidualQuantizer):
             hot_code_mask = self.get_hot_code_mask(z)
 
             for l in range(L):
-                ids_, q = self.step(z_res, l, gumbel_temperature, hot_code_mask)
+                ids_, q = self.match(z_res, l, gumbel_temperature, hot_code_mask)
                 z_hat = z_hat + q
                 loss += self.commit(q, z_res) + self.commit(z_res, q) * self.commit_weight
                 z_res = z_res - q
@@ -266,10 +266,10 @@ class ResidualQuantizerGumbel(ResidualQuantizer):
             z_hat = 0.0  # estimation
             L = len(self.codebooks)
             for l in range(L):
-                ids_, q = super().step(z_res, l)
-                z_hat = z_hat + q
-                loss += self.commit(q, z_res) + self.commit(z_res, q) * self.commit_weight
-                z_res = z_res - q
+                ids_, c = super().match(z_res, l)
+                z_hat = z_hat + c
+                loss += self.commit(c, z_res) + self.commit(z_res, c) * self.commit_weight
+                z_res = z_res - c
 
                 ids.append(ids_)
 
