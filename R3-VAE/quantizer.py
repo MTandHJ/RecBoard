@@ -118,14 +118,14 @@ class RatingResidualQuantizer(nn.Module):
         for l, codebook in enumerate(self.codebooks):
             nn.init.uniform_(codebook.weight, -1.0 / (l + 1), 1.0 / (l + 1))
 
-    def reference_step(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def decouple(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         z = F.normalize(z, p=2, dim=-1)
         reference = F.normalize(self.reference_vector, p=2, dim=-1)
         values = torch.sum(z * reference, dim=-1, keepdim=True)
         reference_out = values * reference
         return z - reference_out, reference_out
 
-    def step(self, r: torch.Tensor, l: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def match(self, r: torch.Tensor, l: int) -> Tuple[torch.Tensor, torch.Tensor]:
         codebook = F.normalize(self.codebooks[l].reinit_kmeans_codebook(r), dim=-1)
         r = F.normalize(r, dim=-1)
         weights, indices = torch.topk(r @ codebook.t(), k=1, dim=-1)
@@ -135,7 +135,7 @@ class RatingResidualQuantizer(nn.Module):
     def forward(
         self, z: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        z_res, z_hat = self.reference_step(z)
+        z_res, z_hat = self.decouple(z)
         target = z_res
 
         ids = []
@@ -144,7 +144,7 @@ class RatingResidualQuantizer(nn.Module):
         L = len(self.codebooks)
 
         for l in range(L):
-            ids_, q = self.step(z_res, l)
+            ids_, q = self.match(z_res, l)
             z_hat = z_hat + q
             z_res = z_res - q
             ids.append(ids_)

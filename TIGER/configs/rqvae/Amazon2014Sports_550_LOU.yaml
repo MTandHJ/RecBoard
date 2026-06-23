@@ -24,4 +24,5 @@ weight_decay: 0.0
 
 # Evaluation
 eval_freq: 100
+CHECKPOINT_FREQ: 100
 which4best: PPL

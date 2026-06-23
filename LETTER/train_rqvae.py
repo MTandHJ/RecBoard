@@ -342,32 +342,24 @@ class LETTER(freerec.models.RecSysArch):
 
 class CoachForLETTER(freerec.launcher.Coach):
 
-    def save_checkpoint(self, epoch):
-        super().save_checkpoint(epoch)
-        if freerec.ddp.is_main_process():
-            sem_ids = self.get_res_sys_arch().generate_sem_ids()
-            freerec.utils.export_pickle(
-                sem_ids,
-                os.path.join(
-                    self.cfg.LOG_PATH,
-                    f"sem_id.pkl"
-                )
+    @freerec.ddp.main_process_only
+    def save_sid_vocab(self) -> None:
+        sem_ids = self.get_res_sys_arch().generate_sem_ids()
+        freerec.utils.export_pickle(
+            sem_ids,
+            os.path.join(
+                self.cfg.LOG_PATH,
+                f"sem_id.pkl"
             )
+        )
 
     def set_other(self):
-        self.register_metric(
-            f"RECON_LOSS", lambda x: x, best_caster=min
-        )
-        self.register_metric(
-            f"RQ_LOSS", lambda x: x, best_caster=min
-        )
+        self.register_metric("RECON_LOSS", lambda x: x, best_caster=min)
+        self.register_metric("COMMIT_LOSS", lambda x: x, best_caster=min)
+        self.register_metric("PPL", lambda x: x, best_caster=max)
+        self.register_metric("COLLISION_RATE", lambda x: x, best_caster=min)
         for i in range(self.cfg.num_codebooks):
-            self.register_metric(
-                f"PPL#{i}", lambda x: x, best_caster=max
-            )
-            self.register_metric(
-                f"DIST#{i}", lambda x: x, best_caster=max
-            )
+            self.register_metric(f"PPL#{i}", lambda x: x, best_caster=max)
 
     def train_per_epoch(self, epoch: int):
 
@@ -389,51 +381,36 @@ class CoachForLETTER(freerec.launcher.Coach):
                 mode='train', pool=['LOSS']
             )
 
-    def evaluate(self, epoch, step = -1, mode = 'valid'):
+        if epoch % self.cfg.eval_freq == 0:
+            self.save_sid_vocab()
 
+    def evaluate(self, epoch, step=-1, mode="valid"):
+        sem_ids = self.get_res_sys_arch().generate_sem_ids().cpu()
         counts = torch.zeros((cfg.num_codewords, cfg.num_codebooks))
-
-        for data in self.dataloader:
-            data = self.dict_to_device(data)
-            items = data[self.Item].flatten()
-            x = self.model.Item.semEmbds(items)
-            q, auxiliary_loss, ids = self.model.encode(x)
-            x_hat = self.model.decode(q)
-            recon_loss = F.mse_loss(x_hat, x, reduction='sum')
-
-            ids = ids.cpu()
-            counts.scatter_add_(
-                0, ids, torch.ones_like(ids, dtype=torch.float)
-            )
-
-            self.monitor(
-                auxiliary_loss, 
-                n=data[self.Size], reduction='sum',
-                mode='valid', pool=[f"RQ_LOSS"]
-            )
-
-            self.monitor(
-                recon_loss, 
-                n=data[self.Size], reduction='sum',
-                mode='valid', pool=[f"RECON_LOSS"]
-            )
+        counts.scatter_add_(0, sem_ids, torch.ones_like(sem_ids, dtype=torch.float))
+        uniques = set([tuple(id_) for id_ in sem_ids.tolist()])
 
         freqs = counts.div(counts.sum(dim=0, keepdim=True))
-        perplexity = ((freqs + 1.e-8).log() * freqs).sum(dim=0).neg().exp().tolist()
+        perplexity = ((freqs + 1.0e-8).log() * freqs).sum(dim=0).neg().exp().tolist()
 
+        ppls = []
         for i, ppl in enumerate(perplexity):
-            self.monitor(
-                ppl, n=1, mode='valid',
-                pool=[f"PPL#{i}"]
-            )
+            ppls.append(ppl)
+            self.monitor(ppl, n=1, mode="valid", pool=[f"PPL#{i}"])
 
-        for i, quantizer in enumerate(self.model.quantizers):
-            codebook = quantizer.codebook
-            dist = torch.cdist(codebook, codebook).mean().item()
-            self.monitor(
-                dist, n=1, mode='valid',
-                pool=[f"DIST#{i}"]
-            )
+        self.monitor(
+            sum(ppls),
+            n=len(ppls),
+            mode=mode,
+            reduction="sum",
+            pool=["PPL"],
+        )
+        self.monitor(
+            (self.Item.count - len(uniques)) / self.Item.count,
+            n=1,
+            mode=mode,
+            pool=["COLLISION_RATE"],
+        )
 
 
 def main():
