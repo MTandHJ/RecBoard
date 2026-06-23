@@ -6,7 +6,7 @@ dataset: Amazon2014Toys_550_LOU
 maxlen: 50
 num_heads: 1
 num_blocks: 2
-embedding_dim: 64
+embedding_dim: 768
 dropout_rate: 0.3
 loss: BCE
 
