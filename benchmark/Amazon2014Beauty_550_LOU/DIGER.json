@@ -1,0 +1,282 @@
+[
+
+    {
+    "description": "sentence-t5-xl",
+    "dataset": "Amazon2014Beauty_550_LOU",
+    "tags": ["Generative", "CE", "128"],
+    "runs": [
+        {
+        "id": "0624162205",
+        "params": {
+            "epochs": 300,
+            "config": "configs/diger/Amazon2014Beauty_550_LOU.yaml",
+            "rqvae_path": "logs/beauty-5/Amazon2014Beauty_550_LOU/0624095958/tokenizer.pt",
+            "seed": 1
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.7895112260259751
+            },
+            "valid": {
+            "HITRATE@1": 0.021464025399096722,
+            "HITRATE@5": 0.058444752498954096,
+            "HITRATE@10": 0.0838885659408,
+            "HITRATE@20": 0.10888521218683139,
+            "NDCG@5": 0.04001056264591352,
+            "NDCG@10": 0.048203251986718855,
+            "NDCG@20": 0.05366814280332683
+            },
+            "test": {
+            "HITRATE@1": 0.011536913652014489,
+            "HITRATE@5": 0.034029423603483586,
+            "HITRATE@10": 0.05151366096183012,
+            "HITRATE@20": 0.0653311273138313,
+            "NDCG@5": 0.022897324195444085,
+            "NDCG@10": 0.028512366136036835,
+            "NDCG@20": 0.03207751578740782
+            },
+            "best": {
+            "HITRATE@1": 0.014175200107320127,
+            "HITRATE@5": 0.038724679157537,
+            "HITRATE@10": 0.06041228815787264,
+            "HITRATE@20": 0.07995349461496695,
+            "NDCG@5": 0.026648312103437544,
+            "NDCG@10": 0.03357610438600911,
+            "NDCG@20": 0.03864730671311365
+            }
+        }
+        },
+        {
+        "id": "0624162204",
+        "params": {
+            "epochs": 300,
+            "config": "configs/diger/Amazon2014Beauty_550_LOU.yaml",
+            "rqvae_path": "logs/beauty-5/Amazon2014Beauty_550_LOU/0624095957/tokenizer.pt",
+            "seed": 0
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.8036164253813801
+            },
+            "valid": {
+            "HITRATE@1": 0.023699861380168292,
+            "HITRATE@5": 0.06506282699500993,
+            "HITRATE@10": 0.09220587578095099,
+            "HITRATE@20": 0.11867817377450295,
+            "NDCG@5": 0.04461773729955223,
+            "NDCG@10": 0.052998434074733786,
+            "NDCG@20": 0.059656840873397336
+            },
+            "test": {
+            "HITRATE@1": 0.012252381165317712,
+            "HITRATE@5": 0.03416357376022895,
+            "HITRATE@10": 0.050842910165443025,
+            "HITRATE@20": 0.06676206234043774,
+            "NDCG@5": 0.023427893590592358,
+            "NDCG@10": 0.028779510269543302,
+            "NDCG@20": 0.032878482468835686
+            },
+            "best": {
+            "HITRATE@1": 0.016232169208066895,
+            "HITRATE@5": 0.044180118946474084,
+            "HITRATE@10": 0.06577829450631416,
+            "HITRATE@20": 0.08697401958992117,
+            "NDCG@5": 0.030154381587862173,
+            "NDCG@10": 0.03706719627373921,
+            "NDCG@20": 0.04254056282459088
+            }
+        }
+        },
+        {
+        "id": "0624201857",
+        "params": {
+            "epochs": 300,
+            "config": "configs/diger/Amazon2014Beauty_550_LOU.yaml",
+            "rqvae_path": "logs/beauty-5/Amazon2014Beauty_550_LOU/0624105801/tokenizer.pt",
+            "seed": 4
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.7986377797197981
+            },
+            "valid": {
+            "HITRATE@1": 0.023655144660586838,
+            "HITRATE@5": 0.0612171891110051,
+            "HITRATE@10": 0.08853910477727096,
+            "HITRATE@20": 0.11223896615477393,
+            "NDCG@5": 0.04197813412828836,
+            "NDCG@10": 0.05071612032392645,
+            "NDCG@20": 0.05709422483030102
+            },
+            "test": {
+            "HITRATE@1": 0.01162634709117739,
+            "HITRATE@5": 0.03340338952734427,
+            "HITRATE@10": 0.04976970889415552,
+            "HITRATE@20": 0.06492867683226758,
+            "NDCG@5": 0.022703526853017162,
+            "NDCG@10": 0.027978875920058564,
+            "NDCG@20": 0.03189142192819488
+            },
+            "best": {
+            "HITRATE@1": 0.015114251218530609,
+            "HITRATE@5": 0.042883334078611994,
+            "HITRATE@10": 0.06322944149017141,
+            "HITRATE@20": 0.08286008138642863,
+            "NDCG@5": 0.02924484911259431,
+            "NDCG@10": 0.035786982327039994,
+            "NDCG@20": 0.040860315282315075
+            }
+        }
+        },
+        {
+        "id": "0624201810",
+        "params": {
+            "epochs": 300,
+            "config": "configs/diger/Amazon2014Beauty_550_LOU.yaml",
+            "rqvae_path": "logs/beauty-5/Amazon2014Beauty_550_LOU/0624105800/tokenizer.pt",
+            "seed": 3
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.7844230475900712
+            },
+            "valid": {
+            "HITRATE@1": 0.022403076510307204,
+            "HITRATE@5": 0.06148548942649481,
+            "HITRATE@10": 0.0892545722885752,
+            "HITRATE@20": 0.11456423557167675,
+            "NDCG@5": 0.04178884092869786,
+            "NDCG@10": 0.05066043353795589,
+            "NDCG@20": 0.05721991477448468
+            },
+            "test": {
+            "HITRATE@1": 0.012923131960372147,
+            "HITRATE@5": 0.034297723920305966,
+            "HITRATE@10": 0.049277824981424884,
+            "HITRATE@20": 0.06524169387200307,
+            "NDCG@5": 0.023751348247736184,
+            "NDCG@10": 0.02857865796491956,
+            "NDCG@20": 0.0326998830727834
+            },
+            "best": {
+            "HITRATE@1": 0.014085766668157224,
+            "HITRATE@5": 0.04341993471892006,
+            "HITRATE@10": 0.06381075885006093,
+            "HITRATE@20": 0.08482761705534214,
+            "NDCG@5": 0.02886382547484412,
+            "NDCG@10": 0.03544223927001735,
+            "NDCG@20": 0.04090442286504219
+            }
+        }
+        },
+        {
+        "id": "0624162206",
+        "params": {
+            "epochs": 300,
+            "config": "configs/diger/Amazon2014Beauty_550_LOU.yaml",
+            "rqvae_path": "logs/beauty-5/Amazon2014Beauty_550_LOU/0624095959/tokenizer.pt",
+            "seed": 2
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.7857187514187858
+            },
+            "valid": {
+            "HITRATE@1": 0.02338684434309813,
+            "HITRATE@5": 0.06251397398086618,
+            "HITRATE@10": 0.09086437419750543,
+            "HITRATE@20": 0.11612932075902653,
+            "NDCG@5": 0.04299699577606146,
+            "NDCG@10": 0.05224980814678535,
+            "NDCG@20": 0.05833790319954374
+            },
+            "test": {
+            "HITRATE@1": 0.012118231006573358,
+            "HITRATE@5": 0.03143585386576041,
+            "HITRATE@10": 0.04641595492554666,
+            "HITRATE@20": 0.06322944148817243,
+            "NDCG@5": 0.02167041869947758,
+            "NDCG@10": 0.026460575791168197,
+            "NDCG@20": 0.03080342706353337
+            },
+            "best": {
+            "HITRATE@1": 0.014711800742297545,
+            "HITRATE@5": 0.044090685509310175,
+            "HITRATE@10": 0.06466037652077586,
+            "HITRATE@20": 0.08420158297787016,
+            "NDCG@5": 0.029836392983722915,
+            "NDCG@10": 0.03646374721639283,
+            "NDCG@20": 0.04148687957822464
+            }
+        }
+        }
+    ],
+    "timestamp": "2026-06-25T00:21:59",
+    "config": {
+        "monitors": [
+        "LOSS",
+        "HitRate@1",
+        "HitRate@5",
+        "HitRate@10",
+        "HitRate@20",
+        "NDCG@5",
+        "NDCG@10",
+        "NDCG@20"
+        ],
+        "which4best": "NDCG@10",
+        "config": "configs/diger/Amazon2014Beauty_550_LOU.yaml",
+        "dataset": "Amazon2014Beauty_550_LOU",
+        "tasktag": "TaskTags.NEXTITEM",
+        "ranking": "full",
+        "retain_seen": false,
+        "optimizer": "AdamW",
+        "optim_first_moment_decay": 0.9,
+        "optim_second_moment_decay": 0.999,
+        "weight_decay": 0.05,
+        "lr": 0.001,
+        "batch_size": 256,
+        "gradient_accumulation_steps": 1,
+        "epochs": 300,
+        "eval_valid": true,
+        "eval_test": false,
+        "eval_freq": 5,
+        "early_stop_patience": 1e+23,
+        "seed": 2,
+        "maxlen": 50,
+        "sem_feat_file": "sentence-t5-xl_title_categories_brand.pkl",
+        "embedding_dim": 128,
+        "attention_size": 64,
+        "intermediate_size": 512,
+        "num_heads": 4,
+        "num_layers": 6,
+        "decoder_layers": null,
+        "dropout_rate": 0.1,
+        "activation_function": "relu",
+        "feed_forward_proj": "relu",
+        "num_beams": 20,
+        "num_codebooks": 3,
+        "num_codewords": 256,
+        "codebook_dim": 128,
+        "hidden_dims": "512,256,128",
+        "apply_shared_codebook": false,
+        "commit_weight": 0.25,
+        "tokenizer_dropout_rate": 0.0,
+        "sk_epsilons": "0.003,0.003,0.003",
+        "sk_iters": 50,
+        "rqvae_path": "logs/beauty-5/Amazon2014Beauty_550_LOU/0624095959/tokenizer.pt",
+        "freeze_id_encoder": true,
+        "lr_rec": null,
+        "lr_id": 1e-05,
+        "lr_sigma": 0.001,
+        "code_loss_weight": 1.0,
+        "recon_loss_weight": 1.0,
+        "vq_loss_weight": 1.0,
+        "gumbel_tau": 2.0,
+        "hot_threshold_ratio": 1.5,
+        "usage_momentum": 0.99,
+        "initial_std": 1.0,
+        "sigma_lambda": 0.5
+    }
+    }
+
+]
