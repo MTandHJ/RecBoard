@@ -39,7 +39,7 @@ initial_std: 0.5
 sigma_lambda: 0.5
 
 # Training
-epochs: 120
+epochs: 300
 optimizer: AdamW
 batch_size: 256
 lr: 1.e-3
