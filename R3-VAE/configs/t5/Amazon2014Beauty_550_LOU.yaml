@@ -13,7 +13,7 @@ dropout_rate: 0.1
 sid_vocab_file: sid_vocab.json
 
 # Training
-epochs: 300
+epochs: 200
 optimizer: AdamW
 batch_size: 512
 lr: 5.e-4
