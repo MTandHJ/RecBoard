@@ -193,6 +193,201 @@
         "num_beams": 20,
         "apply_constrained_beam_search": true
     }
+    },
+
+    {
+    "description": "sentence-t5-xl",
+    "dataset": "Amazon2014Beauty_550_LOU",
+    "tags": ["Generative", "CE", "128", "maxlen=20"],
+    "runs": [
+        {
+        "id": "0626101711",
+        "params": {
+            "seed": 0
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.1516094869736726
+            },
+            "valid": {
+            "HITRATE@1": 0.02450476233263442,
+            "HITRATE@5": 0.06734337969366395,
+            "HITRATE@10": 0.09766131557388606,
+            "HITRATE@20": 0.1298126369529497,
+            "NDCG@5": 0.046220079323238815,
+            "NDCG@10": 0.055110950367262435,
+            "NDCG@20": 0.06342583424533112
+            },
+            "best": {
+            "HITRATE@1": 0.014085766668157224,
+            "HITRATE@5": 0.0459240710101507,
+            "HITRATE@10": 0.06948978223157463,
+            "HITRATE@20": 0.09511246256240764,
+            "NDCG@5": 0.030158732712271496,
+            "NDCG@10": 0.037747014542154615,
+            "NDCG@20": 0.044296495842655395
+            }
+        }
+        },
+        {
+        "id": "0626101713",
+        "params": {
+            "seed": 2
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.1241399256495395
+            },
+            "valid": {
+            "HITRATE@1": 0.025667397039753164,
+            "HITRATE@5": 0.07051826678394701,
+            "HITRATE@10": 0.10226713768677757,
+            "HITRATE@20": 0.134597325946166,
+            "NDCG@5": 0.04793282678083524,
+            "NDCG@10": 0.057934131553762314,
+            "NDCG@20": 0.06610994716875589
+            },
+            "best": {
+            "HITRATE@1": 0.016187452488485445,
+            "HITRATE@5": 0.05012744265080714,
+            "HITRATE@10": 0.07472163842060546,
+            "HITRATE@20": 0.10047846890351951,
+            "NDCG@5": 0.033287323217392396,
+            "NDCG@10": 0.041176844457711546,
+            "NDCG@20": 0.04778066995892127
+            }
+        }
+        },
+        {
+        "id": "0626122516",
+        "params": {
+            "seed": 3
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.1401198057245343
+            },
+            "valid": {
+            "HITRATE@1": 0.025041362967611835,
+            "HITRATE@5": 0.06917676519850245,
+            "HITRATE@10": 0.10061261906426286,
+            "HITRATE@20": 0.13267450700416358,
+            "NDCG@5": 0.04702023685455578,
+            "NDCG@10": 0.05715989157519507,
+            "NDCG@20": 0.06537389548819665
+            },
+            "best": {
+            "HITRATE@1": 0.015337834816437867,
+            "HITRATE@5": 0.047176139158431336,
+            "HITRATE@10": 0.07177033492822966,
+            "HITRATE@20": 0.09685641461742195,
+            "NDCG@5": 0.031294589980751075,
+            "NDCG@10": 0.03922474445477051,
+            "NDCG@20": 0.04563645096153004
+            }
+        }
+        },
+        {
+        "id": "0626101712",
+        "params": {
+            "seed": 1
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.107937521870895
+            },
+            "valid": {
+            "HITRATE@1": 0.02522022984393865,
+            "HITRATE@5": 0.06881903143985185,
+            "HITRATE@10": 0.10052318562310097,
+            "HITRATE@20": 0.13334525779588638,
+            "NDCG@5": 0.04734253524859055,
+            "NDCG@10": 0.05754702817361294,
+            "NDCG@20": 0.06549580157807958
+            },
+            "best": {
+            "HITRATE@1": 0.01574028529267093,
+            "HITRATE@5": 0.048651790904619234,
+            "HITRATE@10": 0.07266466932385668,
+            "HITRATE@20": 0.09918168403565743,
+            "NDCG@5": 0.03238058101670855,
+            "NDCG@10": 0.040111548244441415,
+            "NDCG@20": 0.046844410335850226
+            }
+        }
+        },
+        {
+        "id": "0626122844",
+        "params": {
+            "seed": 4
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 1.0837344747490392
+            },
+            "valid": {
+            "HITRATE@1": 0.024728345928542683,
+            "HITRATE@5": 0.06796941376980327,
+            "HITRATE@10": 0.09909225059849351,
+            "HITRATE@20": 0.1311988552579757,
+            "NDCG@5": 0.04614218315560634,
+            "NDCG@10": 0.055718503322708675,
+            "NDCG@20": 0.06339616649083042
+            },
+            "best": {
+            "HITRATE@1": 0.014398783705227385,
+            "HITRATE@5": 0.043911818630984374,
+            "HITRATE@10": 0.06635961186287202,
+            "HITRATE@20": 0.08992532308229696,
+            "NDCG@5": 0.02929523583978504,
+            "NDCG@10": 0.03651233923821417,
+            "NDCG@20": 0.042538097412378954
+            }
+        }
+        }
+    ],
+    "timestamp": "2026-06-26T14:50:32",
+    "config": {
+        "monitors": [
+        "LOSS",
+        "HitRate@1",
+        "HitRate@5",
+        "HitRate@10",
+        "HitRate@20",
+        "NDCG@5",
+        "NDCG@10",
+        "NDCG@20"
+        ],
+        "which4best": "NDCG@10",
+        "config": "configs/t5/Amazon2014Beauty_550_LOU.yaml",
+        "dataset": "Amazon2014Beauty_550_LOU",
+        "tasktag": null,
+        "ranking": "full",
+        "retain_seen": false,
+        "optimizer": "AdamW",
+        "optim_first_moment_decay": 0.9,
+        "optim_second_moment_decay": 0.999,
+        "weight_decay": 0.001,
+        "lr": 0.0005,
+        "batch_size": 512,
+        "gradient_accumulation_steps": 1,
+        "epochs": 200,
+        "eval_valid": true,
+        "eval_test": false,
+        "eval_freq": 5,
+        "early_stop_patience": 5,
+        "seed": 4,
+        "maxlen": 20,
+        "embedding_dim": 128,
+        "attention_size": 64,
+        "intermediate_size": 256,
+        "num_heads": 4,
+        "num_layers": 6,
+        "dropout_rate": 0.1,
+        "sid_vocab_file": "./logs/beauty-5/Amazon2014Beauty_550_LOU/0625165659/sid_vocab.json",
+        "num_beams": 20,
+        "apply_constrained_beam_search": true
+    }
     }
 
 ]
