@@ -59,19 +59,18 @@ class CodeBook(nn.Embedding):
             clf.fit(z)
             codebook = torch.from_numpy(clf.cluster_centers_)
 
-            self.weight.data.copy_(
-                codebook.to(device=self.weight.device, dtype=self.weight.dtype)
-            )
+            codebook = codebook.to(device=self.weight.device, dtype=self.weight.dtype)
+            self.weight.data.copy_(codebook)
 
             self.requires_kmeans_init_ = False
         return self.weight
 
 
-class ResidualQuantizer(nn.Module):
+class Quantizer(nn.Module):
     def __init__(
         self,
         dataset: freerec.data.datasets.base.RecDataSet,
-        hidden_size: int,
+        codebook_dim: int,
         num_codebooks: int = 3,
         num_codewords: int = 256,
         apply_shared_codebook: bool = False,
@@ -83,25 +82,28 @@ class ResidualQuantizer(nn.Module):
 
         self.dataset = dataset
         self.Item = self.dataset.fields[ITEM, ID]
+        self.codebook_dim = codebook_dim
+        self.num_codebooks = num_codebooks
+        self.num_codewords = num_codewords
 
         if apply_shared_codebook:
             self.codebooks = nn.ModuleList(
                 [
                     CodeBook(
                         num_codewords,
-                        hidden_size,
+                        codebook_dim,
                     )
                 ]
-                * num_codebooks
+                * self.num_codebooks
             )
         else:
             self.codebooks = nn.ModuleList(
                 [
                     CodeBook(
                         num_codewords,
-                        hidden_size,
+                        codebook_dim,
                     )
-                    for _ in range(num_codebooks)
+                    for _ in range(self.num_codebooks)
                 ]
             )
 
@@ -112,23 +114,24 @@ class ResidualQuantizer(nn.Module):
     def commit(self, x: torch.Tensor, y: torch.Tensor):
         return F.mse_loss(x, y.detach(), reduction="sum") / x.size(0)
 
-    def match(self, r: torch.Tensor, l: int):
-        codebook = self.codebooks[l].reinit_kmeans_codebook(r)
-        dist = torch.cdist(r, codebook, p=2)  # (B, K)
+    def match(self, x: torch.Tensor, l: int):
+        codebook = self.codebooks[l].reinit_kmeans_codebook(x)
+        dist = torch.cdist(x, codebook, p=2)  # (B, K)
         if self.sk_epsilons[l] > 0.0:
             dist = -sinkhorn_algorithm(dist, self.sk_epsilons[l], self.sk_iters)
         ids = torch.argmin(dist, dim=-1)  # (B,)
         c = codebook[ids]
         return ids, c
 
+
+class ResidualQuantizer(Quantizer):
     def forward(self, z: torch.Tensor) -> Tuple[torch.Tensor]:
         loss = 0
 
         ids = []
         z_res = z  # residual
         z_hat = 0.0  # estimation
-        L = len(self.codebooks)
-        for l in range(L):
+        for l in range(self.num_codebooks):
             ids_, c = self.match(z_res, l)
             z_hat = z_hat + c
             loss += self.commit(c, z_res) + self.commit(z_res, c) * self.commit_weight
@@ -136,4 +139,30 @@ class ResidualQuantizer(nn.Module):
 
             ids.append(ids_)
 
-        return z + (z_hat - z).detach(), loss / L, torch.stack(ids, dim=-1)
+        return (
+            z + (z_hat - z).detach(),
+            loss / self.num_codebooks,
+            torch.stack(ids, dim=-1),
+        )
+
+
+class ProductQuantizer(Quantizer):
+    def forward(self, z: torch.Tensor) -> Tuple[torch.Tensor]:
+        z = z.view(z.size(0), self.num_codebooks, self.codebook_dim)
+
+        loss = 0
+        ids, cs = [], []
+        for l in range(self.num_codebooks):
+            ids_, c = self.match(z[:, l, :], l)
+            z_l = z[:, l, :]
+            loss += self.commit(c, z_l) + self.commit(z_l, c) * self.commit_weight
+            ids.append(ids_)
+            cs.append(c)
+
+        z_hat = torch.stack(cs, dim=1).view(z.size(0), -1)
+        z = z.view(z.size(0), -1)
+        return (
+            z + (z_hat - z).detach(),
+            loss / self.num_codebooks,
+            torch.stack(ids, dim=-1),
+        )
