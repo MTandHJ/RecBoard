@@ -7,18 +7,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from converter import SemIDConverter
-from quantizer import ResidualQuantizer
+from quantizer import (
+    ResidualQuantizer,
+    ResidualQuantizerGumbel,
+    ResidualQuantizerRotation,
+)
 
 freerec.declare(version="1.0.1")
 
 cfg = freerec.parser.Parser()
 cfg.add_argument("--num-codebooks", type=int, default=3, help="number of codebooks")
-cfg.add_argument(
-    "--num-codewords", type=int, default=512, help="number of codewords per codebook"
-)
-cfg.add_argument(
-    "--codebook-dim", type=int, default=128, help="dimension of codebook vector"
-)
+cfg.add_argument("--num-codewords", type=int, default=512, help="number of codewords per codebook")
+cfg.add_argument("--codebook-dim", type=int, default=128, help="dimension of codebook vector")
 cfg.add_argument(
     "--apply-shared-codebook",
     type=eval,
@@ -36,14 +36,23 @@ cfg.add_argument(
 )
 
 cfg.add_argument("--hidden-dims", type=str, default="512,256,128", help="hidden sizes")
-cfg.add_argument(
-    "--commit-weight", type=float, default=0.25, help="weight for commitment loss"
-)
+cfg.add_argument("--commit-weight", type=float, default=0.25, help="weight for commitment loss")
 cfg.add_argument("--dropout-rate", type=float, default=0.0, help="dropout rate")
-
 cfg.add_argument(
-    "--sem-feat-file", type=str, default=None, help="file of semantic features"
+    "--quantization-strategy",
+    type=str,
+    choices=("ste", "gumbel", "rotation"),
+    default="ste",
+    help="quantization strategy",
 )
+cfg.add_argument(
+    "--gumbel-temperature",
+    type=float,
+    default=1.0,
+    help="temperature for gumbel softmax quantization",
+)
+
+cfg.add_argument("--sem-feat-file", type=str, default=None, help="file of semantic features")
 
 cfg.set_defaults(
     description="RQVAE",
@@ -82,9 +91,7 @@ class RQVAE(freerec.models.RecSysArch):
             ),
         )
 
-        dims = (
-            [self.Item.embeddings.weight.size(1)] + cfg.hidden_dims + [cfg.codebook_dim]
-        )
+        dims = [self.Item.embeddings.weight.size(1)] + cfg.hidden_dims + [cfg.codebook_dim]
         ACT = nn.SiLU
 
         self.encoder = nn.Sequential()
@@ -94,7 +101,12 @@ class RQVAE(freerec.models.RecSysArch):
             if l < len(dims) - 1:
                 self.encoder.append(ACT())
 
-        self.quantizer = ResidualQuantizer(
+        quantizer = {
+            "ste": ResidualQuantizer,
+            "gumbel": ResidualQuantizerGumbel,
+            "rotation": ResidualQuantizerRotation,
+        }[cfg.quantization_strategy]
+        self.quantizer = quantizer(
             self.dataset,
             cfg.codebook_dim,
             num_codebooks=cfg.num_codebooks,
@@ -103,6 +115,7 @@ class RQVAE(freerec.models.RecSysArch):
             commit_weight=cfg.commit_weight,
             sk_iters=cfg.sk_iters,
             sk_epsilons=cfg.sk_epsilons,
+            gumbel_temperature=cfg.gumbel_temperature,
         )
 
         self.decoder, dims = nn.Sequential(), dims[::-1]
@@ -127,7 +140,7 @@ class RQVAE(freerec.models.RecSysArch):
         with torch.no_grad():
             for codebook in self.quantizer.codebooks:
                 codebook.requires_kmeans_init_ = True
-            
+
             self.encoder.to(cfg.device)
             self.quantizer.to(cfg.device)
 
@@ -163,9 +176,7 @@ class RQVAE(freerec.models.RecSysArch):
         x_hat = self.decoder(q)  # (B, D)
         return F.normalize(x_hat, dim=-1)  # normalization !!!
 
-    def fit(
-        self, data: Dict[freerec.data.fields.Field, torch.Tensor]
-    ) -> Dict[str, torch.Tensor]:
+    def fit(self, data: Dict[freerec.data.fields.Field, torch.Tensor]) -> Dict[str, torch.Tensor]:
         items = data[self.Item].flatten()
         x = self.Item.embeddings(items)
         z = self.encode(x)
@@ -187,7 +198,7 @@ class RQVAE(freerec.models.RecSysArch):
             for items in items.split(cfg.batch_size):
                 x = self.Item.embeddings(items)
                 z = self.encode(x)
-                _, _, ids = self.quantizer(z)
+                ids = self.quantizer.get_indices(z)
                 sem_ids.append(ids.detach().cpu())
 
             return torch.cat(sem_ids, dim=0)  # (N, #levels)
@@ -196,7 +207,6 @@ class RQVAE(freerec.models.RecSysArch):
 
 
 class CoachForRQVAE(freerec.launcher.Coach):
-
     @freerec.ddp.main_process_only
     def save_sid_vocab(self) -> None:
         sem_ids = self.get_res_sys_arch().generate_sem_ids()
@@ -282,9 +292,7 @@ def main():
     try:
         dataset = getattr(freerec.data.datasets, cfg.dataset)(root=cfg.root)
     except AttributeError:
-        dataset = freerec.data.datasets.RecDataSet(
-            cfg.root, cfg.dataset, tasktag=cfg.tasktag
-        )
+        dataset = freerec.data.datasets.RecDataSet(cfg.root, cfg.dataset, tasktag=cfg.tasktag)
 
     model = RQVAE(dataset)
 

@@ -176,7 +176,7 @@ class PQVAE(freerec.models.RecSysArch):
             for items in items.split(cfg.batch_size):
                 x = self.Item.embeddings(items)
                 z = self.encode(x)
-                _, _, ids = self.quantizer(z)
+                ids = self.quantizer.get_indices(z)
                 sem_ids.append(ids.detach().cpu())
 
             return torch.cat(sem_ids, dim=0)  # (N, #levels)
