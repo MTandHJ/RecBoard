@@ -218,6 +218,80 @@ class ResidualQuantizerRotation(ResidualQuantizer):
         return z_hat, loss / self.num_codebooks, torch.stack(ids, dim=-1)
 
 
+class ResidualSimVQQuantizer(Quantizer):
+    r"""Residual SimVQ with frozen base codebooks and trainable projections."""
+
+    def __init__(
+        self,
+        dataset: freerec.data.datasets.base.RecDataSet,
+        codebook_dim: int,
+        num_codebooks: int = 3,
+        num_codewords: int = 256,
+        apply_shared_codebook: bool = False,
+        commit_weight: float = 0.25,
+        sk_iters: int = 50,
+        sk_epsilons: Optional[Tuple[float]] = None,
+        gumbel_temperature: float = 1.0,
+    ):
+        super().__init__(
+            dataset,
+            codebook_dim,
+            num_codebooks=num_codebooks,
+            num_codewords=num_codewords,
+            apply_shared_codebook=apply_shared_codebook,
+            commit_weight=commit_weight,
+            sk_iters=sk_iters,
+            sk_epsilons=sk_epsilons,
+            gumbel_temperature=gumbel_temperature,
+        )
+
+        for codebook in self.codebooks:
+            nn.init.normal_(codebook.weight, mean=0.0, std=codebook_dim**-0.5)
+            codebook.weight.requires_grad_(False)
+
+        if apply_shared_codebook:
+            projection = nn.Linear(codebook_dim, codebook_dim)
+            self.projections = nn.ModuleList([projection] * self.num_codebooks)
+        else:
+            self.projections = nn.ModuleList(
+                [nn.Linear(codebook_dim, codebook_dim) for _ in range(self.num_codebooks)]
+            )
+
+    def match(self, x: torch.Tensor, l: int):
+        codebook = self.projections[l](self.codebooks[l].weight)
+        dist = torch.cdist(x, codebook, p=2)  # (B, K)
+        if self.sk_epsilons[l] > 0.0:
+            dist = -sinkhorn_algorithm(dist, self.sk_epsilons[l], self.sk_iters)
+        ids = torch.argmin(dist, dim=-1)
+        c = codebook[ids]
+        return ids, c, dist, codebook
+
+    def get_indices(self, z: torch.Tensor) -> torch.Tensor:
+        ids = []
+        z_res = z
+        for l in range(self.num_codebooks):
+            ids_, c, _, _ = self.match(z_res, l)
+            z_res = z_res - c
+            ids.append(ids_)
+        return torch.stack(ids, dim=-1)
+
+    def forward(self, z: torch.Tensor) -> Tuple[torch.Tensor]:
+        loss = 0
+
+        ids = []
+        z_res = z
+        z_hat = 0.0
+        for l in range(self.num_codebooks):
+            ids_, c, _, _ = self.match(z_res, l)
+            q = CodeBook.straight_through_estimator(z_res, c)
+            z_hat = z_hat + q
+            loss += self.commit(c, z_res) + self.commit(z_res, c) * self.commit_weight
+            z_res = z_res - q
+            ids.append(ids_)
+
+        return z_hat, loss / self.num_codebooks, torch.stack(ids, dim=-1)
+
+
 class ProductQuantizer(Quantizer):
     def get_indices(self, z: torch.Tensor) -> torch.Tensor:
         z = z.view(z.size(0), self.num_codebooks, self.codebook_dim)
