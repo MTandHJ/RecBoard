@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, mkdir} from "fs";
+import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync } from "fs";
 import { join, basename, resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -115,12 +115,13 @@ function main() {
       const content = JSON.parse(readFileSync(join(datasetDir, file), "utf-8"));
       const evaluations = Array.isArray(content) ? content : [content];
 
-      for (const evaluation of evaluations) {
+      for (const [index, evaluation] of evaluations.entries()) {
         const runs = (evaluation.runs || []).map(normalizeRun);
         results.push({
+          id: `${dataset}/${model}/${index}`,
           model,
           description: evaluation.description || "",
-          dataset: evaluation.dataset || dataset,
+          dataset,
           tags: evaluation.tags || [],
           bestMetrics: aggregateRuns(runs),
           runs,

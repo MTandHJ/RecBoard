@@ -27,6 +27,7 @@ export interface DatasetMeta {
 }
 
 export interface AggregatedResult {
+  id: string;
   model: string;
   description: string;
   dataset: string;

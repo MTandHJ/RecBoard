@@ -64,8 +64,7 @@ const tagStyle: React.CSSProperties = {
 const bestCellProps = { style: { backgroundColor: colors.bgHighlight } };
 const emptyCellProps = {};
 
-const getRowKey = (record: AggregatedResult) =>
-  `${record.model}-${record.description}`;
+const getRowKey = (record: AggregatedResult) => record.id;
 
 const expandable = {
   expandedRowRender: (record: AggregatedResult) => <ExpandedRow record={record} />,
@@ -79,7 +78,7 @@ function LeaderboardTable({ data, meta }: LeaderboardTableProps) {
     [data, metricKeys],
   );
 
-  const coreMetrics = meta?.core_metrics ?? [];
+  const coreMetrics = useMemo(() => meta?.core_metrics ?? [], [meta?.core_metrics]);
   const sortBy = meta?.sort_by;
   const hasCoreFilter = coreMetrics.length > 0;
   const extraMetrics = hasCoreFilter
