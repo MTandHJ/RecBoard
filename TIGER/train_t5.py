@@ -16,7 +16,7 @@ BEAM_SCORE_BASE = 1.0
 freerec.declare(version="1.0.1")
 
 cfg = freerec.parser.Parser()
-cfg.add_argument("--maxlen", type=int, default=50, help="maximum item sequence length")
+cfg.add_argument("--maxlen", type=int, default=20, help="maximum item sequence length")
 cfg.add_argument("--embedding-dim", type=int, default=128, help="T5 d_model")
 cfg.add_argument("--attention-size", type=int, default=64, help="T5 d_kv")
 cfg.add_argument("--intermediate-size", type=int, default=64 * 4, help="T5 d_ff")

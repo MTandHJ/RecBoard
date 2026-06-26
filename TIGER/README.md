@@ -15,7 +15,7 @@ python encode_textual_features.py
    `sid_vocab.json` for downstream T5 training.
 
 ```bash
-python train_residual_kmeans.py --config=configs/kmeans/Amazon2014Beauty_550_LOU.yaml
+python train_residual_kmeans.py --config=configs/rqkmeans/Amazon2014Beauty_550_LOU.yaml
 ```
 
 ```bash
@@ -69,7 +69,7 @@ python train_t5.py --config=configs/t5/Amazon2014Beauty_550_LOU.yaml \
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `--maxlen` | int | `50` | Maximum item-history length. |
+| `--maxlen` | int | `20` | Maximum item-history length. |
 | `--embedding-dim` | int | `128` | T5 hidden dimension. |
 | `--attention-size` | int | `64` | T5 key/value dimension. |
 | `--intermediate-size` | int | `256` | T5 feed-forward dimension. |
@@ -141,7 +141,7 @@ root: ../../data
 dataset: Amazon2014Beauty_550_LOU
 
 # Model
-maxlen: 50
+maxlen: 20
 embedding_dim: 128
 attention_size: 64
 intermediate_size: 256
