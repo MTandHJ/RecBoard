@@ -3,7 +3,7 @@ root: ../../data
 dataset: Amazon2014Sports_550_LOU
 
 # Model
-maxlen: 50
+maxlen: 20
 embedding_dim: 128
 attention_size: 64
 intermediate_size: 256

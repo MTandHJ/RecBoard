@@ -18,7 +18,7 @@ freerec.declare(version="1.0.1")
 
 cfg = freerec.parser.Parser()
 
-cfg.add_argument("--maxlen", type=int, default=50, help="maximum item sequence length")
+cfg.add_argument("--maxlen", type=int, default=20, help="maximum item sequence length")
 cfg.add_argument("--sem-feat-file", type=str, default="sentence-t5-xl_title_categories_brand.pkl")
 
 cfg.add_argument("--embedding-dim", "--d-model", type=int, default=128, help="T5 d_model")

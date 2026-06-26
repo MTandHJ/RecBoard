@@ -5,7 +5,7 @@ tasktag: NEXTITEM
 sem_feat_file: sentence-t5-xl_title_categories_brand.pkl
 
 # T5 recommender
-maxlen: 50
+maxlen: 20
 embedding_dim: 128
 attention_size: 64
 intermediate_size: 512
