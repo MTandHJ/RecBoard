@@ -1,0 +1,29 @@
+# Data
+root: ../../data
+dataset: Amazon2014Beauty_550_LOU
+tasktag: NEXTITEM
+sem_feat_file: ../../data/Amazon2014Beauty_550_LOU/sentence-t5-xl_title_categories_brand.pkl
+
+# Model
+num_codebooks: 3
+num_codewords: 256
+codebook_dim: 128
+hidden_dims: 512,256
+quant_loss_weight: 1.0
+commit_weight: 0.25
+kmeans_init: true
+kmeans_iters: 100
+tokenizer_dropout_rate: 0.0
+
+# Training
+epochs: 10000
+batch_size: 1024
+optimizer: AdamW
+lr: 1.e-3
+weight_decay: 1.e-4
+lr_scheduler_type: linear
+warmup_epochs: 50
+eval_freq: 50
+CHECKPOINT_FREQ: 50
+monitors: [LOSS, RECON_LOSS, VQ_LOSS, COLLISION_RATE, PPL]
+which4best: COLLISION_RATE

@@ -7,9 +7,14 @@ import freerec
 import numpy as np
 import torch
 import torch.nn.functional as F
-from freerec.data.tags import ID, ITEM
 from modules import ETEGRecGenerator, ETEGRecTokenizer
-from transformers import T5Config, T5ForConditionalGeneration
+from transformers import (
+    T5Config,
+    T5ForConditionalGeneration,
+    get_constant_schedule_with_warmup,
+    get_linear_schedule_with_warmup,
+)
+from transformers.optimization import get_scheduler
 
 freerec.declare(version="1.0.1")
 
@@ -17,12 +22,12 @@ freerec.declare(version="1.0.1")
 cfg = freerec.parser.Parser()
 
 # Data
-cfg.add_argument("--maxlen", type=int, default=50, help="maximum item history length")
+cfg.add_argument("--maxlen", type=int, default=20, help="maximum item history length")
 cfg.add_argument(
     "--sem-feat-file",
     type=str,
     default=None,
-    help="semantic item embedding file, relative to dataset.path unless absolute",
+    help="semantic item embedding file",
 )
 cfg.add_argument(
     "--finetune-epochs",
@@ -34,7 +39,7 @@ cfg.add_argument(
 # T5
 cfg.add_argument("--embedding-dim", type=int, default=128, help="T5 d_model")
 cfg.add_argument("--attention-size", type=int, default=64, help="T5 d_kv")
-cfg.add_argument("--intermediate-size", type=int, default=256, help="T5 d_ff")
+cfg.add_argument("--intermediate-size", type=int, default=512, help="T5 d_ff")
 cfg.add_argument("--num-heads", type=int, default=4, help="number of attention heads")
 cfg.add_argument("--num-layers", type=int, default=6, help="number of encoder layers")
 cfg.add_argument(
@@ -46,31 +51,26 @@ cfg.add_argument(
 cfg.add_argument("--dropout-rate", type=float, default=0.1, help="T5 dropout")
 cfg.add_argument("--activation-function", type=str, default="relu")
 cfg.add_argument("--feed-forward-proj", type=str, default="relu")
-cfg.add_argument("--num-beams", type=int, default=10, help="beam width")
+cfg.add_argument("--num-beams", type=int, default=20, help="beam width")
+cfg.add_argument("--n-positions", type=int, default=210, help="T5 relative position bucket budget")
 
 # Semantic ID / RQ-VAE
-cfg.add_argument("--semantic-hidden-size", type=int, default=768)
-cfg.add_argument("--code-num", type=int, default=256)
-cfg.add_argument("--code-length", type=int, default=4)
-cfg.add_argument("--num-emb-list", type=str, default="256,256,256")
-cfg.add_argument("--e-dim", type=int, default=32)
-cfg.add_argument("--layers", type=str, default="512,256,128")
-cfg.add_argument("--alpha", type=float, default=1.0)
-cfg.add_argument("--commit-weight", type=float, default=0.5)
-cfg.add_argument("--apply-shared-codebook", type=eval, default=False)
-cfg.add_argument("--sk-epsilons", type=str, default="0.,0.,0.")
-cfg.add_argument("--sk-iters", type=int, default=50)
+cfg.add_argument("--num-codebooks", type=int, default=3)
+cfg.add_argument("--num-codewords", type=int, default=256)
+cfg.add_argument("--codebook-dim", type=int, default=128)
+cfg.add_argument("--hidden-dims", type=str, default="512,256")
+cfg.add_argument("--quant-loss-weight", type=float, default=1.0)
+cfg.add_argument("--commit-weight", type=float, default=0.25)
 cfg.add_argument("--kmeans-init", type=eval, default=False)
 cfg.add_argument("--kmeans-iters", type=int, default=100)
-cfg.add_argument("--dropout-prob", type=float, default=0.1)
+cfg.add_argument("--tokenizer-dropout-rate", type=float, default=0.0)
 cfg.add_argument("--rqvae-path", type=str, default=None)
 
 # ETEGRec alternating training weights
-cfg.add_argument("--lr-rec", type=float, default=5e-4)
-cfg.add_argument("--lr-id", type=float, default=5e-4)
-cfg.add_argument("--cycle", type=int, default=4)
+cfg.add_argument("--lr-rec", type=float, default=5e-3)
+cfg.add_argument("--lr-id", type=float, default=1e-4)
+cfg.add_argument("--cycle", type=int, default=2)
 cfg.add_argument("--warm-epoch", type=int, default=10)
-cfg.add_argument("--base-auxiliary-loss", type=float, default=1.0)
 cfg.add_argument("--id-vq-loss", type=float, default=1.0)
 cfg.add_argument("--id-code-loss", type=float, default=0.0)
 cfg.add_argument("--id-kl-loss", type=float, default=1e-4)
@@ -80,6 +80,11 @@ cfg.add_argument("--rec-code-loss", type=float, default=1.0)
 cfg.add_argument("--rec-kl-loss", type=float, default=1e-4)
 cfg.add_argument("--rec-dec-cl-loss", type=float, default=3e-4)
 cfg.add_argument("--sim", type=str, default="cos", choices=("cos", "dot"))
+cfg.add_argument(
+    "--lr-scheduler-type", type=str, default="cosine", choices=("linear", "constant", "cosine")
+)
+cfg.add_argument("--warmup-steps", type=int, default=8000)
+cfg.add_argument("--finetune-lr", type=float, default=5e-4)
 
 cfg.set_defaults(
     description="ETEGRec",
@@ -88,86 +93,15 @@ cfg.set_defaults(
     epochs=400,
     batch_size=512,
     weight_decay=0.05,
-    ranking="full",
-    monitors=[
-        "Recall@1",
-        "Recall@5",
-        "NDCG@5",
-        "Recall@10",
-        "NDCG@10",
-    ],
-    which4best="NDCG@10",
-    eval_freq=8,
-    seed=2020,
+    seed=1,
 )
 cfg.compile()
 
-cfg.num_emb_list = list(map(int, cfg.num_emb_list.split(",")))
-cfg.layers = list(map(int, cfg.layers.split(","))) if cfg.layers else []
-cfg.sk_epsilons = list(map(float, cfg.sk_epsilons.split(",")))
-assert cfg.code_length == len(cfg.num_emb_list) + 1, (
-    "ETEGRec training expects `code_length` to equal "
-    "`len(num_emb_list) + 1`, where the last token resolves collisions"
+cfg.hidden_dims = list(map(int, cfg.hidden_dims.split(","))) if cfg.hidden_dims else []
+cfg.code_length = cfg.num_codebooks + 1
+assert cfg.cycle > 0 and cfg.cycle % cfg.eval_freq == 0, (
+    "for ETEGRec parity, cycle should be divisible by eval_freq"
 )
-assert len(cfg.sk_epsilons) == len(cfg.num_emb_list), (
-    "`sk_epsilons` should contain one value for each tokenizer codebook"
-)
-assert cfg.cycle > 0 and cfg.eval_freq % cfg.cycle == 0, (
-    "for ETEGRec parity, eval_freq should be divisible by cycle"
-)
-
-
-def load_pretrained_tokenizer(model: ETEGRecTokenizer, path: str) -> None:
-    checkpoint = torch.load(path, map_location="cpu")
-    if isinstance(checkpoint, dict) and "model_id" in checkpoint:
-        checkpoint = checkpoint["model_id"]
-    elif isinstance(checkpoint, dict) and "model" in checkpoint:
-        checkpoint = checkpoint["model"]
-
-    state_dict = {}
-    for key, value in checkpoint.items():
-        while key.startswith("module."):
-            key = key[len("module.") :]
-        if key.startswith("Item.embeddings."):
-            continue
-        if key.startswith("quantizer.codebooks."):
-            parts = key.split(".")
-            key = f"rq.vq_layers.{parts[2]}.embedding.{parts[3]}"
-        state_dict[key] = value
-
-    missing, unexpected = model.load_state_dict(state_dict, strict=False)
-    if unexpected:
-        freerec.utils.infoLogger(
-            f"[ETEGRec] >>> ignored unexpected RQ-VAE checkpoint keys: {unexpected}"
-        )
-    if missing:
-        freerec.utils.infoLogger(
-            f"[ETEGRec] >>> missing RQ-VAE checkpoint keys: {missing}"
-        )
-
-
-def resolve_semantic_path(dataset: freerec.data.datasets.RecDataSet) -> str:
-    if cfg.sem_feat_file is None:
-        raise ValueError("--sem-feat-file is required for train_etegrec.py")
-    if os.path.isabs(cfg.sem_feat_file):
-        return cfg.sem_feat_file
-    return os.path.join(dataset.path, cfg.sem_feat_file)
-
-
-def load_semantic_embedding(dataset: freerec.data.datasets.RecDataSet) -> torch.Tensor:
-    path = resolve_semantic_path(dataset)
-    ext = os.path.splitext(path)[1].lower()
-    if ext == ".npy":
-        features = np.load(path)
-    else:
-        features = freerec.utils.import_pickle(path)
-    features = torch.as_tensor(features, dtype=torch.float)
-    if features.size(0) != dataset.fields[ITEM, ID].count:
-        raise ValueError(
-            f"semantic features contain {features.size(0)} rows, but dataset has "
-            f"{dataset.fields[ITEM, ID].count} items"
-        )
-    return features
 
 
 class ETEGRec(freerec.models.SeqRecArch):
@@ -179,12 +113,24 @@ class ETEGRec(freerec.models.SeqRecArch):
     def __init__(self, dataset: freerec.data.datasets.RecDataSet) -> None:
         super().__init__(dataset)
 
-        semantic_features = load_semantic_embedding(dataset)
-        if semantic_features.size(1) != cfg.semantic_hidden_size:
-            raise ValueError(
-                f"--semantic-hidden-size={cfg.semantic_hidden_size} does not match "
-                f"semantic feature dim {semantic_features.size(1)}"
-            )
+        semantic_features = torch.as_tensor(
+            freerec.utils.import_pickle(cfg.sem_feat_file),
+            dtype=torch.float,
+        )
+        item_feat_dim = semantic_features.size(1)
+        model_cfg = {
+            "item_feat_dim": item_feat_dim,
+            "num_codebooks": cfg.num_codebooks,
+            "num_codewords": cfg.num_codewords,
+            "code_length": cfg.code_length,
+            "num_beams": cfg.num_beams,
+            "hidden_dims": cfg.hidden_dims,
+            "codebook_dim": cfg.codebook_dim,
+            "commit_weight": cfg.commit_weight,
+            "kmeans_init": cfg.kmeans_init,
+            "kmeans_iters": cfg.kmeans_iters,
+            "tokenizer_dropout_rate": cfg.tokenizer_dropout_rate,
+        }
 
         model_config = T5Config(
             num_layers=cfg.num_layers,
@@ -197,30 +143,29 @@ class ETEGRec(freerec.models.SeqRecArch):
             activation_function=cfg.activation_function,
             vocab_size=1,
             pad_token_id=0,
-            eos_token_id=cfg.code_num + cfg.code_length,
+            eos_token_id=cfg.num_codewords + cfg.code_length,
             decoder_start_token_id=0,
             feed_forward_proj=cfg.feed_forward_proj,
-            n_positions=cfg.maxlen * cfg.code_length,
+            n_positions=cfg.n_positions,
         )
         t5 = T5ForConditionalGeneration(config=model_config)
-        model_cfg = self.etegrec_config()
         self.model_rec = ETEGRecGenerator(
             config=model_cfg,
             model=t5,
-            n_items=self.Item.count + self.NUM_PADS,
+            num_items=self.Item.count + self.NUM_PADS,
             code_length=cfg.code_length,
-            code_number=cfg.code_num,
+            num_codewords=cfg.num_codewords,
         )
         self.model_id = ETEGRecTokenizer(
             config=model_cfg,
-            in_dim=cfg.semantic_hidden_size,
+            in_dim=item_feat_dim,
         )
 
         self.model_rec.semantic_embedding.weight.data.zero_()
         self.model_rec.semantic_embedding.weight.data[self.NUM_PADS :] = semantic_features
 
         if cfg.rqvae_path is not None:
-            load_pretrained_tokenizer(self.model_id, cfg.rqvae_path)
+            self.model_id.load_state_dict(torch.load(cfg.rqvae_path, map_location="cpu"))
 
         self.register_buffer(
             "all_item_code",
@@ -234,26 +179,6 @@ class ETEGRec(freerec.models.SeqRecArch):
         self.train_id = False
         self.refresh_item_codes(verbose=False)
 
-    @staticmethod
-    def etegrec_config() -> Dict:
-        return {
-            "semantic_hidden_size": cfg.semantic_hidden_size,
-            "code_num": cfg.code_num,
-            "code_length": cfg.code_length,
-            "num_beams": cfg.num_beams,
-            "layers": cfg.layers,
-            "e_dim": cfg.e_dim,
-            "num_emb_list": cfg.num_emb_list,
-            "alpha": cfg.alpha,
-            "commit_weight": cfg.commit_weight,
-            "apply_shared_codebook": cfg.apply_shared_codebook,
-            "sk_epsilons": cfg.sk_epsilons,
-            "sk_iters": cfg.sk_iters,
-            "kmeans_init": cfg.kmeans_init,
-            "kmeans_iters": cfg.kmeans_iters,
-            "dropout_prob": cfg.dropout_prob,
-        }
-
     def to(self, *args, **kwargs):
         module = super().to(*args, **kwargs)
         self.model_rec.device = next(self.parameters()).device
@@ -262,13 +187,10 @@ class ETEGRec(freerec.models.SeqRecArch):
     def sure_trainpipe(self, maxlen: int, batch_size: int):
         return (
             self.dataset.train()
-            # align with TIGER rolling samples; ETEGRec source uses only one sequence per user.
-            .shuffled_roll_seqs_source(
-                minlen=2, maxlen=maxlen + 1, keep_at_least_itself=True
-            )
+            .shuffled_seqs_source(maxlen=maxlen + 1)
             .seq_train_yielding_pos_(start_idx_for_target=-1, end_idx_for_input=-1)
             .add_(offset=self.NUM_PADS, modified_fields=(self.ISeq, self.IPos))
-            .lpad_(maxlen, modified_fields=(self.ISeq,), padding_value=self.PADDING_VALUE)
+            .rpad_(maxlen, modified_fields=(self.ISeq,), padding_value=self.PADDING_VALUE)
             .batch_(batch_size)
             .tensor_()
         )
@@ -280,7 +202,7 @@ class ETEGRec(freerec.models.SeqRecArch):
             .valid_sampling_(ranking)
             .lprune_(maxlen, modified_fields=(self.ISeq,))
             .add_(offset=self.NUM_PADS, modified_fields=(self.ISeq,))
-            .lpad_(maxlen, modified_fields=(self.ISeq,), padding_value=self.PADDING_VALUE)
+            .rpad_(maxlen, modified_fields=(self.ISeq,), padding_value=self.PADDING_VALUE)
             .batch_(batch_size)
             .tensor_()
         )
@@ -292,7 +214,7 @@ class ETEGRec(freerec.models.SeqRecArch):
             .test_sampling_(ranking)
             .lprune_(maxlen, modified_fields=(self.ISeq,))
             .add_(offset=self.NUM_PADS, modified_fields=(self.ISeq,))
-            .lpad_(maxlen, modified_fields=(self.ISeq,), padding_value=self.PADDING_VALUE)
+            .rpad_(maxlen, modified_fields=(self.ISeq,), padding_value=self.PADDING_VALUE)
             .batch_(batch_size)
             .tensor_()
         )
@@ -314,10 +236,10 @@ class ETEGRec(freerec.models.SeqRecArch):
             item_codes.append(code + [len(tokens2item[key]) - 1])
             max_conflict = max(max_conflict, len(tokens2item[key]))
 
-        if max_conflict > cfg.code_num:
+        if max_conflict > cfg.num_codewords:
             raise ValueError(
                 f"RQ-VAE semantic ID conflict exceeds codebook size: "
-                f"{max_conflict} > {cfg.code_num}"
+                f"{max_conflict} > {cfg.num_codewords}"
             )
 
         code_tensor = torch.tensor(
@@ -352,9 +274,9 @@ class ETEGRec(freerec.models.SeqRecArch):
 
     @staticmethod
     def compute_discrete_contrastive_loss_kl(x_logits, y_logits):
-        code_num = x_logits.size(-1)
-        x_logits = F.log_softmax(x_logits.view(-1, code_num), dim=-1)
-        y_logits = F.log_softmax(y_logits.view(-1, code_num), dim=-1)
+        num_codewords = x_logits.size(-1)
+        x_logits = F.log_softmax(x_logits.view(-1, num_codewords), dim=-1)
+        y_logits = F.log_softmax(y_logits.view(-1, num_codewords), dim=-1)
         return F.kl_div(x_logits, y_logits, reduction="batchmean", log_target=True)
 
     @staticmethod
@@ -366,21 +288,17 @@ class ETEGRec(freerec.models.SeqRecArch):
         similarities = torch.matmul(query_embeds, semantic_embeds.t()) / temperature
         return F.cross_entropy(similarities, labels)
 
-    @staticmethod
-    def first_unique_indices(inputs: torch.Tensor) -> torch.Tensor:
-        _, indices = np.unique(inputs.detach().cpu().numpy(), return_index=True)
-        return torch.tensor(indices, dtype=torch.long, device=inputs.device)
-
     def fit(self, data: Dict[freerec.data.fields.Field, torch.Tensor]):
         input_ids, attention_mask = self.code_inputs(data[self.ISeq])
         labels = self.all_item_code[data[self.IPos]].contiguous().view(input_ids.size(0), -1)
         targets = data[self.IPos].flatten()
-        unique_indices = self.first_unique_indices(targets)
+        _, unique_indices = np.unique(targets.detach().cpu().numpy(), return_index=True)
+        unique_indices = torch.tensor(unique_indices, dtype=torch.long, device=targets.device)
 
         target_semantic_embs = self.model_rec.semantic_embedding(targets)
-        target_recon_embs, commit_loss, _, _, target_code_logits = self.model_id(
-            target_semantic_embs
-        )
+        target_tokenizer_output = self.model_id(target_semantic_embs)
+        target_recon_embs = target_tokenizer_output.reconstructions
+        target_code_logits = target_tokenizer_output.logits
 
         outputs = self.model_rec(
             input_ids=input_ids,
@@ -390,10 +308,11 @@ class ETEGRec(freerec.models.SeqRecArch):
         logits = outputs.logits
         seq_project_latents = outputs.seq_project_latents
         dec_latents = outputs.dec_latents
-        _, _, _, _, seq_code_logits = self.model_id.rq(seq_project_latents)
+        seq_quantizer_output = self.model_id.rq(seq_project_latents)
+        seq_code_logits = seq_quantizer_output.logits
 
         code_loss = F.cross_entropy(
-            logits.view(-1, cfg.code_num),
+            logits.view(-1, cfg.num_codewords),
             labels.detach().reshape(-1),
         )
         kl_loss = self.compute_discrete_contrastive_loss_kl(
@@ -422,12 +341,10 @@ class ETEGRec(freerec.models.SeqRecArch):
         if self.train_id:
             unique_targets = targets[unique_indices]
             unique_semantic_embs = self.model_rec.semantic_embedding(unique_targets)
-            unique_recon_embs, commit_loss, _, _, _ = self.model_id(unique_semantic_embs)
-            recon_loss = (
-                F.mse_loss(unique_recon_embs, unique_semantic_embs, reduction="sum")
-                / unique_semantic_embs.size(0)
-            ) # align with TIGER; /feature_dim in official implementation
-            losses["vq_loss"] = recon_loss + cfg.alpha * commit_loss
+            unique_tokenizer_output = self.model_id(unique_semantic_embs)
+            unique_recon_embs = unique_tokenizer_output.reconstructions
+            recon_loss = F.mse_loss(unique_recon_embs, unique_semantic_embs, reduction="mean")
+            losses["vq_loss"] = recon_loss + cfg.quant_loss_weight * unique_tokenizer_output.loss
         else:
             losses["vq_loss"] = torch.zeros((), dtype=code_loss.dtype, device=code_loss.device)
 
@@ -501,9 +418,53 @@ class CoachForETEGRec(freerec.launcher.Coach):
         self.id_optimizer = torch.optim.AdamW(
             model.model_id.parameters(),
             lr=self.cfg.lr_id,
-            weight_decay=0.0, # align with TIGER; =self.cfg.weight_decay in official implementation
+            weight_decay=self.cfg.weight_decay,
         )
         self.optimizer = self.rec_optimizer
+
+    def _build_scheduler(
+        self,
+        optimizer: torch.optim.Optimizer,
+        warmup_steps: int,
+        num_training_steps: int,
+    ):
+        if self.cfg.lr_scheduler_type == "linear":
+            return get_linear_schedule_with_warmup(
+                optimizer=optimizer,
+                num_warmup_steps=warmup_steps,
+                num_training_steps=num_training_steps,
+            )
+        if self.cfg.lr_scheduler_type == "constant":
+            return get_constant_schedule_with_warmup(
+                optimizer=optimizer,
+                num_warmup_steps=warmup_steps,
+            )
+        if self.cfg.lr_scheduler_type == "cosine":
+            return get_scheduler(
+                name="cosine",
+                optimizer=optimizer,
+                num_warmup_steps=warmup_steps,
+                num_training_steps=num_training_steps,
+            )
+        raise ValueError(f"unsupported lr_scheduler_type: {self.cfg.lr_scheduler_type}")
+
+    def set_lr_scheduler(self) -> None:
+        steps_per_epoch = max(len(self.trainloader), 1)
+        rec_steps = max(self.cfg.epochs * steps_per_epoch, 1)
+        id_steps = max(rec_steps // self.cfg.cycle, 1)
+        rec_warmup_steps = self.cfg.warmup_steps
+        id_warmup_steps = self.cfg.warmup_steps // self.cfg.cycle
+
+        self.rec_lr_scheduler = self._build_scheduler(
+            self.rec_optimizer,
+            rec_warmup_steps,
+            rec_steps,
+        )
+        self.id_lr_scheduler = self._build_scheduler(
+            self.id_optimizer,
+            id_warmup_steps,
+            id_steps,
+        )
 
     def set_other(self):
         self.register_metric("CODE_LOSS", lambda x: x, best_caster=min)
@@ -518,31 +479,31 @@ class CoachForETEGRec(freerec.launcher.Coach):
         for name, param in model.model_rec.named_parameters():
             param.requires_grad = (not train_id) and not name.startswith("semantic_embedding")
 
-    def _loss_weights(self, epoch: int, train_id: bool) -> Dict[str, float]:
-        warmed = epoch >= self.cfg.warm_epoch
-        aux_weight = self.cfg.base_auxiliary_loss
-        if train_id:
-            return {
-                "vq_loss": self.cfg.id_vq_loss,
-                "code_loss": self.cfg.id_code_loss if warmed else 0.0,
-                "kl_loss": self.cfg.id_kl_loss * aux_weight if warmed else 0.0,
-                "dec_cl_loss": self.cfg.id_dec_cl_loss * aux_weight if warmed else 0.0,
-            }
-        return {
-            "vq_loss": self.cfg.rec_vq_loss,
-            "code_loss": self.cfg.rec_code_loss,
-            "kl_loss": self.cfg.rec_kl_loss * aux_weight if warmed else 0.0,
-            "dec_cl_loss": self.cfg.rec_dec_cl_loss * aux_weight if warmed else 0.0,
-        }
-
-    def _train_epoch(self, epoch: int, train_id: bool):
+    def train_per_epoch(self, epoch: int) -> None:
+        etegrec_epoch = epoch - 1
+        train_id = etegrec_epoch % self.cfg.cycle == 0
+        warmed = etegrec_epoch >= self.cfg.warm_epoch
         model = self.get_res_sys_arch()
         model.set_train_stage(train_id)
         self._set_trainable(train_id)
         model.model_id.train(train_id)
         model.model_rec.train(not train_id)
         optimizer = self.id_optimizer if train_id else self.rec_optimizer
-        weights = self._loss_weights(epoch, train_id)
+        scheduler = self.id_lr_scheduler if train_id else self.rec_lr_scheduler
+        if train_id:
+            weights = {
+                "vq_loss": self.cfg.id_vq_loss,
+                "code_loss": self.cfg.id_code_loss if warmed else 0.0,
+                "kl_loss": self.cfg.id_kl_loss if warmed else 0.0,
+                "dec_cl_loss": self.cfg.id_dec_cl_loss if warmed else 0.0,
+            }
+        else:
+            weights = {
+                "vq_loss": self.cfg.rec_vq_loss,
+                "code_loss": self.cfg.rec_code_loss,
+                "kl_loss": self.cfg.rec_kl_loss if warmed else 0.0,
+                "dec_cl_loss": self.cfg.rec_dec_cl_loss if warmed else 0.0,
+            }
 
         optimizer.zero_grad()
         for data in self.dataloader:
@@ -556,41 +517,21 @@ class CoachForETEGRec(freerec.launcher.Coach):
                 1.0,
             )
             optimizer.step()
+            scheduler.step()
             optimizer.zero_grad()
 
-            batch_size = len(data[model.User]) if model.User in data else data[model.ISeq].size(0)
+            batch_size = data[self.Size]
             self.monitor(loss.item(), n=batch_size, mode="train", pool=["LOSS"])
-            self.monitor(
-                losses["code_loss"].item(),
-                n=batch_size,
-                mode="train",
-                pool=["CODE_LOSS"],
-            )
-            self.monitor(
-                losses["vq_loss"].item(),
-                n=batch_size,
-                mode="train",
-                pool=["VQ_LOSS"],
-            )
-            self.monitor(
-                losses["kl_loss"].item(),
-                n=batch_size,
-                mode="train",
-                pool=["KL_LOSS"],
-            )
-            self.monitor(
-                losses["dec_cl_loss"].item(),
-                n=batch_size,
-                mode="train",
-                pool=["DEC_CL_LOSS"],
-            )
+            for key, val in losses.items():
+                self.monitor(
+                    val.item(),
+                    n=batch_size,
+                    mode="train",
+                    pool=[key.upper()],
+                )
 
         if train_id:
             model.refresh_item_codes(verbose=True)
-
-    def train_per_epoch(self, epoch: int):
-        etegrec_epoch = epoch - 1
-        self._train_epoch(etegrec_epoch, train_id=(etegrec_epoch % self.cfg.cycle == 0))
 
     def save(self, filename: str = None) -> None:
         if freerec.ddp.is_main_process():
@@ -625,6 +566,8 @@ class CoachForETEGRec(freerec.launcher.Coach):
             "model": self.model.state_dict(),
             "rec_optimizer": self.rec_optimizer.state_dict(),
             "id_optimizer": self.id_optimizer.state_dict(),
+            "rec_lr_scheduler": self.rec_lr_scheduler.state_dict(),
+            "id_lr_scheduler": self.id_lr_scheduler.state_dict(),
             "monitors": self.monitors.state_dict(),
         }
         path = os.path.join(self.cfg.CHECKPOINT_PATH, self.cfg.CHECKPOINT_FILENAME)
@@ -637,6 +580,8 @@ class CoachForETEGRec(freerec.launcher.Coach):
         self.model.load_state_dict(checkpoint["model"], strict=False)
         self.rec_optimizer.load_state_dict(checkpoint["rec_optimizer"])
         self.id_optimizer.load_state_dict(checkpoint["id_optimizer"])
+        self.rec_lr_scheduler.load_state_dict(checkpoint["rec_lr_scheduler"])
+        self.id_lr_scheduler.load_state_dict(checkpoint["id_lr_scheduler"])
         self.monitors.load_state_dict(checkpoint["monitors"])
         self.get_res_sys_arch().refresh_item_codes(verbose=False)
         freerec.ddp.synchronize()
@@ -663,8 +608,14 @@ class CoachForETEGRec(freerec.launcher.Coach):
 
         self.rec_optimizer = torch.optim.AdamW(
             (p for p in model.model_rec.parameters() if p.requires_grad),
-            lr=5e-4,
+            lr=self.cfg.finetune_lr,
             weight_decay=self.cfg.weight_decay,
+        )
+        self.rec_lr_scheduler = get_scheduler(
+            name="cosine",
+            optimizer=self.rec_optimizer,
+            num_warmup_steps=0,
+            num_training_steps=max(self.cfg.finetune_epochs * len(self.dataloader), 1),
         )
 
         for epoch in range(self.cfg.finetune_epochs):
@@ -678,6 +629,7 @@ class CoachForETEGRec(freerec.launcher.Coach):
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(model.model_rec.parameters(), 1.0)
                     self.rec_optimizer.step()
+                    self.rec_lr_scheduler.step()
                     self.rec_optimizer.zero_grad()
                 self.valid(self.cfg.epochs + epoch + 1)
             except freerec.launcher.EarlyStopError:
@@ -699,9 +651,11 @@ class CoachForETEGRec(freerec.launcher.Coach):
                         self.test(epoch + 1)
         except freerec.launcher.EarlyStopError:
             freerec.utils.infoLogger(f"[Coach] >>> Early Stop @Epoch: {epoch}")
-        self.save()
+        finally:
+            self.save_last()
+
         self.finetune()
-        self.save()
+        self.save_last()
         self.test(self.cfg.epochs + self.cfg.finetune_epochs)
         self._stopping_steps = -1
         best = self.summary()
