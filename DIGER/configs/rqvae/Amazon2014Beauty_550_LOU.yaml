@@ -13,7 +13,7 @@ apply_shared_codebook: false
 sk_epsilons: 0.003,0.003,0.003
 sk_iters: 50
 commit_weight: 0.25
-dropout_rate: 0.1
+dropout_rate: 0.
 
 # Training
 epochs: 10000
