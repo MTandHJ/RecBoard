@@ -18,7 +18,7 @@ cfg.add_argument("--num-iters", type=int, default=10)
 cfg.add_argument("--sem-feat-file", type=str, default=None)
 
 cfg.set_defaults(
-    description="PQ-KMeans",
+    description="OPQ-PQ-KMeans",
     root="../../data",
     dataset="Amazon2014Beauty_1000_LOU",
     epochs=1,
@@ -86,31 +86,33 @@ class PQKMeans(freerec.models.RecSysArch):
             raise ValueError("embedding dimension must be divisible by num-codebooks")
 
         nbits = num_codewords_to_nbits(cfg.num_codewords)
-        pq = faiss.ProductQuantizer(dim, cfg.num_codebooks, nbits)
-        pq.cp.niter = cfg.num_iters
-        pq.verbose = True
-        pq.train(z)
-
-        dsub = dim // cfg.num_codebooks
-        return faiss.vector_to_array(pq.centroids).reshape(
-            cfg.num_codebooks,
-            cfg.num_codewords,
-            dsub,
+        index = faiss.index_factory(
+            dim,
+            f"OPQ{cfg.num_codebooks},PQ{cfg.num_codebooks}x{nbits}",
+            faiss.METRIC_INNER_PRODUCT,
         )
+        index.verbose = True
 
-    def assign_product_codes(self, z: np.ndarray, centroids: np.ndarray) -> torch.Tensor:
-        sem_ids = []
-        for subvector, codebook in zip(np.split(z, cfg.num_codebooks, axis=1), centroids):
-            codes = []
-            codebook_norm = (codebook**2).sum(axis=1)
-            for batch in np.array_split(
-                subvector, max(1, math.ceil(len(subvector) / cfg.batch_size))
-            ):
-                batch_norm = (batch**2).sum(axis=1, keepdims=True)
-                dist = batch_norm + codebook_norm[None, :] - 2 * batch @ codebook.T
-                codes.append(dist.argmin(axis=-1))
-            sem_ids.append(torch.from_numpy(np.concatenate(codes)))
-        return torch.stack(sem_ids, dim=-1).long()
+        opq = faiss.downcast_VectorTransform(index.chain.at(0))
+        opq.verbose = True
+
+        pq_index = faiss.downcast_index(index.index)
+        pq_index.verbose = True
+        pq_index.pq.cp.niter = cfg.num_iters
+        pq_index.pq.verbose = True
+
+        index.train(z)
+        return index
+
+    def assign_product_codes(self, z: np.ndarray, index) -> torch.Tensor:
+        if cfg.num_codewords != 256:
+            raise ValueError("faiss OPQ-PQ sa_encode requires num-codewords=256")
+        if index.sa_code_size() != cfg.num_codebooks:
+            raise ValueError(
+                f"unexpected OPQ-PQ code size: {index.sa_code_size()} != {cfg.num_codebooks}"
+            )
+        codes = index.sa_encode(z)
+        return torch.from_numpy(codes.astype(np.int64)).long()
 
     @torch.no_grad()
     def generate_sem_ids(self):
@@ -121,8 +123,8 @@ class PQKMeans(freerec.models.RecSysArch):
                 z = self.Item.embeddings.weight.detach().cpu().numpy()
                 z = np.ascontiguousarray(z, dtype=np.float32)
 
-                centroids = self.fit_product_quantizer(z)
-                self._sem_ids = self.assign_product_codes(z, centroids)
+                index = self.fit_product_quantizer(z)
+                self._sem_ids = self.assign_product_codes(z, index)
             return self._sem_ids
         finally:
             self.train(is_training)
