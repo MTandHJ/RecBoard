@@ -24,6 +24,8 @@ cfg.set_defaults(
     epochs=1,
     batch_size=256,
     optimizer="AdamW",
+    lr=1e-3,
+    weight_decay=0.0,
     seed=1,
 )
 cfg.compile()
