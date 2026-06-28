@@ -15,13 +15,13 @@ sk_iters: 50
 commit_weight: 0.5
 dropout_rate: 0.
 quantization_strategy: gumbel
-gumbel_temperature: 1.0
+gumbel_temperature: 5.0
 
 # Training
 epochs: 10000
 batch_size: 1024
 optimizer: AdamW
-lr: 1.e-3
+lr: 5.e-4
 weight_decay: 0.0
 
 # Evaluation
