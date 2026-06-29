@@ -7,7 +7,6 @@ sem_feat_file: sentence-t5-xl_title_categories_brand.pkl
 # Model
 num_codewords: 256
 num_codebooks: 3
-num_iters: 100
 
 # Training
 epochs: 1

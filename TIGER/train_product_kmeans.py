@@ -14,7 +14,6 @@ freerec.declare(version="1.0.1")
 cfg = freerec.parser.Parser()
 cfg.add_argument("--num-codebooks", type=int, default=3)
 cfg.add_argument("--num-codewords", type=int, default=256)
-cfg.add_argument("--num-iters", type=int, default=10)
 cfg.add_argument("--sem-feat-file", type=str, default=None)
 
 cfg.set_defaults(
@@ -100,7 +99,6 @@ class PQKMeans(freerec.models.RecSysArch):
 
         pq_index = faiss.downcast_index(index.index)
         pq_index.verbose = True
-        pq_index.pq.cp.niter = cfg.num_iters
         pq_index.pq.verbose = True
 
         index.train(z)
