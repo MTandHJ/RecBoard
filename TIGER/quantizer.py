@@ -137,7 +137,10 @@ class Quantizer(nn.Module):
             )
 
         self.sk_iters = sk_iters
-        self.sk_epsilons = sk_epsilons
+        if sk_epsilons:
+            self.sk_epsilons = sk_epsilons
+        else:
+            self.sk_epsilons = [0.] * len(self.codebooks)
         self.commit_weight = commit_weight
         self.gumbel_temperature = gumbel_temperature
 
