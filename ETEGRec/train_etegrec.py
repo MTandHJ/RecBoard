@@ -542,32 +542,9 @@ class CoachForETEGRec(freerec.launcher.Coach):
         if train_id:
             model.refresh_item_codes(verbose=True)
 
-    def save(self, filename: str = None) -> None:
-        if freerec.ddp.is_main_process():
-            filename = self.cfg.SAVED_FILENAME if filename is None else filename
-            path = os.path.join(self.cfg.LOG_PATH, filename)
-            model = self.get_res_sys_arch()
-            torch.save(
-                {
-                    "model_rec": model.model_rec.state_dict(),
-                    "model_id": model.model_id.state_dict(),
-                    "all_item_code": model.all_item_code.detach().cpu(),
-                },
-                path,
-            )
-            with open(path + ".code.json", "w", encoding="utf-8") as file:
-                json.dump(model.all_item_code.detach().cpu().tolist(), file)
-        freerec.ddp.synchronize()
-
     def load(self, path: str, filename: str = None) -> None:
-        filename = self.cfg.SAVED_FILENAME if filename is None else filename
-        checkpoint = torch.load(os.path.join(path, filename), map_location=self.device)
-        model = self.get_res_sys_arch()
-        model.model_rec.load_state_dict(checkpoint["model_rec"], strict=False)
-        model.model_id.load_state_dict(checkpoint["model_id"], strict=False)
-        model.all_item_code.copy_(checkpoint["all_item_code"].to(self.device))
-        model.refresh_item_codes(verbose=False)
-        freerec.ddp.synchronize()
+        super().load(path, filename)
+        self.get_res_sys_arch().refresh_item_codes(verbose=False)
 
     def save_checkpoint(self, epoch: int) -> None:
         checkpoint = {
