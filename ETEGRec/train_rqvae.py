@@ -126,8 +126,15 @@ class RQVAE(freerec.models.RecSysArch):
 
 
 class CoachForRQVAE(freerec.launcher.Coach):
+    @property
+    def trainsteps(self):
+        count = 0
+        for _ in self.trainloader:
+            count += 1
+        return max(count, 1)
+
     def set_lr_scheduler(self) -> None:
-        steps_per_epoch = max(len(self.trainloader), 1)
+        steps_per_epoch = self.trainsteps
         warmup_steps = cfg.warmup_epochs * steps_per_epoch
         max_steps = max(cfg.epochs * steps_per_epoch, 1)
         if cfg.lr_scheduler_type == "linear":

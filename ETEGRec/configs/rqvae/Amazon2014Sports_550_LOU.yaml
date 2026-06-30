@@ -27,5 +27,4 @@ warmup_epochs: 50
 # Evaluation
 eval_freq: 50
 CHECKPOINT_FREQ: 50
-monitors: [LOSS, RECON_LOSS, VQ_LOSS, COLLISION_RATE, PPL]
 which4best: COLLISION_RATE

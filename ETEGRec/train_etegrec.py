@@ -450,8 +450,15 @@ class CoachForETEGRec(freerec.launcher.Coach):
             )
         raise ValueError(f"unsupported lr_scheduler_type: {self.cfg.lr_scheduler_type}")
 
+    @property
+    def trainsteps(self):
+        count = 0
+        for _ in self.trainloader:
+            count += 1
+        return max(count, 1)
+
     def set_lr_scheduler(self) -> None:
-        steps_per_epoch = max(len(self.trainloader), 1)
+        steps_per_epoch = self.trainsteps
         rec_steps = max(self.cfg.epochs * steps_per_epoch, 1)
         id_steps = max(rec_steps // self.cfg.cycle, 1)
         rec_warmup_steps = self.cfg.warmup_steps
