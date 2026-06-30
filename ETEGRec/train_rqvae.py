@@ -1,3 +1,4 @@
+import os
 from typing import Dict
 
 import freerec
@@ -50,7 +51,9 @@ class RQVAE(freerec.models.RecSysArch):
         super().__init__(dataset)
 
         semantic_features = torch.as_tensor(
-            freerec.utils.import_pickle(cfg.sem_feat_file),
+            freerec.utils.import_pickle(
+                os.path.join(dataset.path, cfg.sem_feat_file)
+            ),
             dtype=torch.float,
         )
         tokenizer_config = {
