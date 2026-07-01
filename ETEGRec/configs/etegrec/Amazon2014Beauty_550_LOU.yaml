@@ -30,7 +30,7 @@ feed_forward_proj: relu
 n_positions: 210
 
 # Training
-epochs: 400
+epochs: 300
 batch_size: 512
 weight_decay: 0.05
 lr_rec: 5.e-3
@@ -55,7 +55,6 @@ sim: cos
 
 # Evaluation
 num_beams: 20
-eval_freq: 2
-ranking: full
-monitors: [LOSS, Recall@1, Recall@5, NDCG@5, Recall@10, NDCG@10]
+eval_freq: 5
+monitors: [LOSS, HitRate@1, HitRate@5, HitRate@10, HitRate@20, NDCG@5, NDCG@10, NDCG@20]
 which4best: NDCG@10
