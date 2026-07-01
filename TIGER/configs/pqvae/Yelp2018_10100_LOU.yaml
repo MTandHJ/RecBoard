@@ -10,17 +10,16 @@ num_codebooks: 3
 codebook_dim: 32
 hidden_dims: 512,256,128
 apply_shared_codebook: false
-sk_epsilons: 0.,0.,0.03
+sk_epsilons: 0.,0.,0.003
 sk_iters: 50
 commit_weight: 0.5
-dropout_rate: 0.1
-quantization_strategy: rotation
+dropout_rate: 0.
 
 # Training
 epochs: 10000
 batch_size: 4096
 optimizer: AdamW
-lr: 1.e-3
+lr: 1.e-4
 weight_decay: 0.0
 
 # Evaluation
