@@ -26,11 +26,13 @@ function ExpandedRow({ record }: ExpandedRowProps) {
     })),
   ];
 
-  const seedData = runs.map((run) => ({
-    key: run.id,
-    seed: run.params.seed,
-    ...run.metrics.best,
-  }));
+  const seedData = [...runs]
+    .sort((a, b) => a.params.seed - b.params.seed)
+    .map((run) => ({
+      key: run.id,
+      seed: run.params.seed,
+      ...run.metrics.best,
+    }));
 
   const configEntries = Object.entries(config);
 
