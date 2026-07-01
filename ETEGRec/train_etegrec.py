@@ -601,7 +601,7 @@ class CoachForETEGRec(freerec.launcher.Coach):
             name="cosine",
             optimizer=self.rec_optimizer,
             num_warmup_steps=0,
-            num_training_steps=max(self.cfg.finetune_epochs * len(self.dataloader), 1),
+            num_training_steps=max(self.cfg.finetune_epochs * self.trainsteps, 1),
         )
 
         for epoch in range(self.cfg.finetune_epochs):
