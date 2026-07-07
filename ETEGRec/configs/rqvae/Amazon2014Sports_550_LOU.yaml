@@ -19,8 +19,8 @@ tokenizer_dropout_rate: 0.0
 epochs: 10000
 batch_size: 1024
 optimizer: AdamW
-lr: 1.e-3
-weight_decay: 1.e-4
+lr: 1.e-4
+weight_decay: 0.
 lr_scheduler_type: linear
 warmup_epochs: 50
 
