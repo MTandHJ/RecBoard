@@ -10,7 +10,7 @@ num_codewords: 256
 codebook_dim: 128
 hidden_dims: 512,256
 quant_loss_weight: 1.0
-commit_weight: 0.25
+commit_weight: 0.5
 kmeans_init: true
 kmeans_iters: 100
 tokenizer_dropout_rate: 0.0
