@@ -1,0 +1,303 @@
+[
+
+    {
+    "description": "sentence-t5-xl",
+    "dataset": "Amazon2014Sports_550_LOU",
+    "tags": ["Generative", "CE", "128", "maxlen=20"],
+    "runs": [
+        {
+        "id": "0713192228",
+        "params": {
+            "config": "configs/etegrec/Amazon2014Sports_550_LOU.yaml",
+            "rqvae_path": "./logs/RQ/Amazon2014Sports_550_LOU/0713115753/tokenizer.pt",
+            "seed": 2
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.0006530033654871316,
+            "CODE_LOSS": 1.6846311254289432,
+            "VQ_LOSS": 0.0,
+            "KL_LOSS": 0.00021881818670626326,
+            "DEC_CL_LOSS": 9.453421762052685
+            },
+            "valid": {
+            "HITRATE@1": 0.010506208213944603,
+            "HITRATE@5": 0.0329512893982808,
+            "HITRATE@10": 0.050143266475644696,
+            "HITRATE@20": 0.06986347547615035,
+            "NDCG@5": 0.02187710760671025,
+            "NDCG@10": 0.027394663003148828,
+            "NDCG@20": 0.03234010676305156
+            },
+            "test": {
+            "HITRATE@1": 0.007556604303612563,
+            "HITRATE@5": 0.024271026462160797,
+            "HITRATE@10": 0.03786729591550087,
+            "HITRATE@20": 0.053120961851789425,
+            "NDCG@5": 0.015947490327779788,
+            "NDCG@10": 0.020322406110793556,
+            "NDCG@20": 0.024221832993489463
+            },
+            "best": {
+            "HITRATE@1": 0.008174616551491657,
+            "HITRATE@5": 0.026658801056239113,
+            "HITRATE@10": 0.039917972919826954,
+            "HITRATE@20": 0.05503118152705208,
+            "NDCG@5": 0.017483341452934627,
+            "NDCG@10": 0.021718984408133205,
+            "NDCG@20": 0.02556673162004855
+            }
+        }
+        },
+        {
+        "id": "0713192225",
+        "params": {
+            "config": "configs/etegrec/Amazon2014Sports_550_LOU.yaml",
+            "rqvae_path": "./logs/RQ/Amazon2014Sports_550_LOU/0713115750/tokenizer.pt",
+            "seed": 0
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.0006344161781868579,
+            "CODE_LOSS": 1.5625769351632335,
+            "VQ_LOSS": 0.0,
+            "KL_LOSS": 0.0002674633379637718,
+            "DEC_CL_LOSS": 9.231838957621372
+            },
+            "valid": {
+            "HITRATE@1": 0.010787122872071465,
+            "HITRATE@5": 0.03320411259059498,
+            "HITRATE@10": 0.04963762009101635,
+            "HITRATE@20": 0.06986347547615035,
+            "NDCG@5": 0.0220636128408131,
+            "NDCG@10": 0.027248449090712727,
+            "NDCG@20": 0.032340125825470224
+            },
+            "test": {
+            "HITRATE@1": 0.007303781111298388,
+            "HITRATE@5": 0.023765380077532445,
+            "HITRATE@10": 0.037389740996685204,
+            "HITRATE@20": 0.0523624922748469,
+            "NDCG@5": 0.015574041853005165,
+            "NDCG@10": 0.019963019383550395,
+            "NDCG@20": 0.02377611149758179
+            },
+            "best": {
+            "HITRATE@1": 0.00800606775661554,
+            "HITRATE@5": 0.026153154671610765,
+            "HITRATE@10": 0.04076071689420754,
+            "HITRATE@20": 0.05548064498005506,
+            "NDCG@5": 0.01700619691673628,
+            "NDCG@10": 0.021681368926970018,
+            "NDCG@20": 0.025442229569731845
+            }
+        }
+        },
+        {
+        "id": "0713192227",
+        "params": {
+            "config": "configs/etegrec/Amazon2014Sports_550_LOU.yaml",
+            "rqvae_path": "./logs/RQ/Amazon2014Sports_550_LOU/0713115752/tokenizer.pt",
+            "seed": 1
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.0006628749933880301,
+            "CODE_LOSS": 1.6563523001895606,
+            "VQ_LOSS": 0.0,
+            "KL_LOSS": 0.00021974318287640727,
+            "DEC_CL_LOSS": 9.491178351283388
+            },
+            "valid": {
+            "HITRATE@1": 0.010084836226754311,
+            "HITRATE@5": 0.031209618517894264,
+            "HITRATE@10": 0.04845777852688353,
+            "HITRATE@20": 0.06685768863419293,
+            "NDCG@5": 0.02049471398080773,
+            "NDCG@10": 0.026008680214191515,
+            "NDCG@20": 0.030690840320665116
+            },
+            "test": {
+            "HITRATE@1": 0.006826226192482724,
+            "HITRATE@5": 0.022894544637339177,
+            "HITRATE@10": 0.03632226529580314,
+            "HITRATE@20": 0.05053654699702231,
+            "NDCG@5": 0.014889745742352172,
+            "NDCG@10": 0.019194375719205136,
+            "NDCG@20": 0.02280768310103137
+            },
+            "best": {
+            "HITRATE@1": 0.008118433619866285,
+            "HITRATE@5": 0.02525422776560481,
+            "HITRATE@10": 0.038934771616382945,
+            "HITRATE@20": 0.05393561436035732,
+            "NDCG@5": 0.01670286187051193,
+            "NDCG@10": 0.021108204910471048,
+            "NDCG@20": 0.02492705493649711
+            }
+        }
+        },
+        {
+        "id": "0713234423",
+        "params": {
+            "config": "configs/etegrec/Amazon2014Sports_550_LOU.yaml",
+            "rqvae_path": "./logs/RQ/Amazon2014Sports_550_LOU/0713131158/tokenizer.pt",
+            "seed": 4
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.00064931844062851,
+            "CODE_LOSS": 1.647118120292203,
+            "VQ_LOSS": 0.0,
+            "KL_LOSS": 0.00023926299658540498,
+            "DEC_CL_LOSS": 9.334215565620966
+            },
+            "valid": {
+            "HITRATE@1": 0.010787122872071465,
+            "HITRATE@5": 0.03297938086409349,
+            "HITRATE@10": 0.051042193381650655,
+            "HITRATE@20": 0.0707624023821563,
+            "NDCG@5": 0.021861631914875307,
+            "NDCG@10": 0.027645883996223183,
+            "NDCG@20": 0.0326665819069664
+            },
+            "test": {
+            "HITRATE@1": 0.0077532445643013655,
+            "HITRATE@5": 0.02539468509466824,
+            "HITRATE@10": 0.039637058261700095,
+            "HITRATE@20": 0.056098657227934154,
+            "NDCG@5": 0.01658781707836032,
+            "NDCG@10": 0.021159974837967558,
+            "NDCG@20": 0.025354013669068202
+            },
+            "best": {
+            "HITRATE@1": 0.009073543457497613,
+            "HITRATE@5": 0.02677116691948986,
+            "HITRATE@10": 0.04140682060789932,
+            "HITRATE@20": 0.05750323051856846,
+            "NDCG@5": 0.01795317639985897,
+            "NDCG@10": 0.022649781366661497,
+            "NDCG@20": 0.026758949936802546
+            }
+        }
+        },
+        {
+        "id": "0713192229",
+        "params": {
+            "config": "configs/etegrec/Amazon2014Sports_550_LOU.yaml",
+            "rqvae_path": "./logs/RQ/Amazon2014Sports_550_LOU/0713115754/tokenizer.pt",
+            "seed": 3
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.0006883716854947877,
+            "CODE_LOSS": 1.8946962281052762,
+            "VQ_LOSS": 0.0,
+            "KL_LOSS": 0.0002231874755409679,
+            "DEC_CL_LOSS": 9.975776798598277
+            },
+            "valid": {
+            "HITRATE@1": 0.009747738637002078,
+            "HITRATE@5": 0.03050733187257711,
+            "HITRATE@10": 0.045395808753300744,
+            "HITRATE@20": 0.06399235912129896,
+            "NDCG@5": 0.01992537046247027,
+            "NDCG@10": 0.024753258057548543,
+            "NDCG@20": 0.0294910957768356
+            },
+            "test": {
+            "HITRATE@1": 0.006629585931793921,
+            "HITRATE@5": 0.022388898252710825,
+            "HITRATE@10": 0.03444013708635316,
+            "HITRATE@20": 0.051688297095342436,
+            "NDCG@5": 0.014591305278427072,
+            "NDCG@10": 0.018443223374252526,
+            "NDCG@20": 0.022833228336890044
+            },
+            "best": {
+            "HITRATE@1": 0.007837518961739424,
+            "HITRATE@5": 0.023681105680094388,
+            "HITRATE@10": 0.03651890555649194,
+            "HITRATE@20": 0.05281195572784988,
+            "NDCG@5": 0.015829049566098964,
+            "NDCG@10": 0.019976311437842134,
+            "NDCG@20": 0.024120093273529812
+            }
+        }
+        }
+    ],
+    "timestamp": "2026-07-14T04:18:27",
+    "config": {
+        "monitors": [
+        "LOSS",
+        "HitRate@1",
+        "HitRate@5",
+        "HitRate@10",
+        "HitRate@20",
+        "NDCG@5",
+        "NDCG@10",
+        "NDCG@20"
+        ],
+        "which4best": "NDCG@10",
+        "config": "configs/etegrec/Amazon2014Sports_550_LOU.yaml",
+        "dataset": "Amazon2014Sports_550_LOU",
+        "tasktag": "TaskTags.NEXTITEM",
+        "ranking": "full",
+        "retain_seen": false,
+        "optimizer": "Adam",
+        "optim_first_moment_decay": 0.9,
+        "optim_second_moment_decay": 0.999,
+        "weight_decay": 0.05,
+        "lr": null,
+        "batch_size": 512,
+        "gradient_accumulation_steps": 1,
+        "epochs": 300,
+        "eval_valid": true,
+        "eval_test": false,
+        "eval_freq": 2,
+        "early_stop_patience": 1e+23,
+        "seed": 3,
+        "maxlen": 20,
+        "sem_feat_file": "sentence-t5-xl_title_categories_brand.pkl",
+        "finetune_epochs": 100,
+        "embedding_dim": 128,
+        "attention_size": 64,
+        "intermediate_size": 512,
+        "num_heads": 4,
+        "num_layers": 6,
+        "num_decoder_layers": 6,
+        "dropout_rate": 0.1,
+        "activation_function": "relu",
+        "feed_forward_proj": "relu",
+        "num_beams": 20,
+        "n_positions": 210,
+        "num_codebooks": 3,
+        "num_codewords": 256,
+        "codebook_dim": 128,
+        "hidden_dims": "512,256",
+        "quant_loss_weight": 1.0,
+        "commit_weight": 0.25,
+        "kmeans_init": false,
+        "kmeans_iters": 100,
+        "tokenizer_dropout_rate": 0.0,
+        "rqvae_path": "./logs/RQ/Amazon2014Sports_550_LOU/0713115754/tokenizer.pt",
+        "lr_rec": 0.005,
+        "lr_id": 0.0001,
+        "cycle": 2,
+        "warm_epoch": 10,
+        "id_vq_loss": 1.0,
+        "id_code_loss": 0.0,
+        "id_kl_loss": 0.0001,
+        "id_dec_cl_loss": 0.0003,
+        "rec_vq_loss": 0.0,
+        "rec_code_loss": 1.0,
+        "rec_kl_loss": 0.0001,
+        "rec_dec_cl_loss": 0.0003,
+        "sim": "cos",
+        "lr_scheduler_type": "cosine",
+        "warmup_steps": 8000,
+        "finetune_lr": 0.0005
+    }
+    }
+
+]

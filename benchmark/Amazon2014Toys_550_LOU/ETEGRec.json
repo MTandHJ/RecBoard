@@ -1,0 +1,303 @@
+[
+
+    {
+    "description": "sentence-t5-xl",
+    "dataset": "Amazon2014Toys_550_LOU",
+    "tags": ["Generative", "CE", "128", "maxlen=20"],
+    "runs": [
+        {
+        "id": "0713192030",
+        "params": {
+            "config": "configs/etegrec/Amazon2014Toys_550_LOU.yaml",
+            "rqvae_path": "./logs/RQ/Amazon2014Toys_550_LOU/0713115658/tokenizer.pt",
+            "seed": 1
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.0004106062924940815,
+            "CODE_LOSS": 0.2171283596917425,
+            "VQ_LOSS": 0.0,
+            "KL_LOSS": 0.00019430101059635116,
+            "DEC_CL_LOSS": 4.950749435917068
+            },
+            "valid": {
+            "HITRATE@1": 0.015969503400726413,
+            "HITRATE@5": 0.04332371728904292,
+            "HITRATE@10": 0.0640325571818927,
+            "HITRATE@20": 0.08268081599164447,
+            "NDCG@5": 0.029263584650615404,
+            "NDCG@10": 0.036010580266717045,
+            "NDCG@20": 0.04080481974950358
+            },
+            "test": {
+            "HITRATE@1": 0.009272614878930678,
+            "HITRATE@5": 0.030908716259520005,
+            "HITRATE@10": 0.0469812487144397,
+            "HITRATE@20": 0.06253863589762536,
+            "NDCG@5": 0.020081122259786147,
+            "NDCG@10": 0.025262543945420705,
+            "NDCG@20": 0.029248012544526997
+            },
+            "best": {
+            "HITRATE@1": 0.011333195962796328,
+            "HITRATE@5": 0.031372347003389776,
+            "HITRATE@10": 0.046157016281661065,
+            "HITRATE@20": 0.06001442407065757,
+            "NDCG@5": 0.021301287558185375,
+            "NDCG@10": 0.02609354342022508,
+            "NDCG@20": 0.029668584679380633
+            }
+        }
+        },
+        {
+        "id": "0713192029",
+        "params": {
+            "config": "configs/etegrec/Amazon2014Toys_550_LOU.yaml",
+            "rqvae_path": "./logs/RQ/Amazon2014Toys_550_LOU/0713115657/tokenizer.pt",
+            "seed": 0
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.00041524739756531524,
+            "CODE_LOSS": 0.22596481929663872,
+            "VQ_LOSS": 0.0,
+            "KL_LOSS": 0.00019193207587592186,
+            "DEC_CL_LOSS": 4.969888977714109
+            },
+            "valid": {
+            "HITRATE@1": 0.017257366578142447,
+            "HITRATE@5": 0.0453842983736762,
+            "HITRATE@10": 0.06593859468523605,
+            "HITRATE@20": 0.0859777457258295,
+            "NDCG@5": 0.03136629924752308,
+            "NDCG@10": 0.03760584573075866,
+            "NDCG@20": 0.042934080691385976
+            },
+            "test": {
+            "HITRATE@1": 0.012724088194405642,
+            "HITRATE@5": 0.033329899033062146,
+            "HITRATE@10": 0.05002060581237391,
+            "HITRATE@20": 0.06676282711954994,
+            "NDCG@5": 0.02309240068255467,
+            "NDCG@10": 0.028482122258098007,
+            "NDCG@20": 0.03279348718708271
+            },
+            "best": {
+            "HITRATE@1": 0.013187718938275413,
+            "HITRATE@5": 0.03482382031886474,
+            "HITRATE@10": 0.051566041626040775,
+            "HITRATE@20": 0.06835977745954581,
+            "NDCG@5": 0.02398889107438134,
+            "NDCG@10": 0.029385915907687462,
+            "NDCG@20": 0.0337025079681975
+            }
+        }
+        },
+        {
+        "id": "0713223042",
+        "params": {
+            "config": "configs/etegrec/Amazon2014Toys_550_LOU.yaml",
+            "rqvae_path": "./logs/RQ/Amazon2014Toys_550_LOU/0713130226/tokenizer.pt",
+            "seed": 2
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.0004064453591825608,
+            "CODE_LOSS": 0.20072562652591108,
+            "VQ_LOSS": 0.0,
+            "KL_LOSS": 0.00020841527889104165,
+            "DEC_CL_LOSS": 4.783653407742406
+            },
+            "valid": {
+            "HITRATE@1": 0.01638161961673192,
+            "HITRATE@5": 0.04461158046645895,
+            "HITRATE@10": 0.06537193488717301,
+            "HITRATE@20": 0.08530805687357317,
+            "NDCG@5": 0.03057477626601814,
+            "NDCG@10": 0.03709866628112214,
+            "NDCG@20": 0.042093959560799345
+            },
+            "test": {
+            "HITRATE@1": 0.010405934474289159,
+            "HITRATE@5": 0.032402637544554976,
+            "HITRATE@10": 0.04723882134915528,
+            "HITRATE@20": 0.06490830414407085,
+            "NDCG@5": 0.02141317278653377,
+            "NDCG@10": 0.026146992188205726,
+            "NDCG@20": 0.03067515114625133
+            },
+            "best": {
+            "HITRATE@1": 0.010560478055579083,
+            "HITRATE@5": 0.03410261693874413,
+            "HITRATE@10": 0.05074180919172688,
+            "HITRATE@20": 0.06722645786265209,
+            "NDCG@5": 0.02247892230267061,
+            "NDCG@10": 0.027832587684629234,
+            "NDCG@20": 0.032080416463802164
+            }
+        }
+        },
+        {
+        "id": "0713223609",
+        "params": {
+            "config": "configs/etegrec/Amazon2014Toys_550_LOU.yaml",
+            "rqvae_path": "./logs/RQ/Amazon2014Toys_550_LOU/0713130237/tokenizer.pt",
+            "seed": 3
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.00041295493277634747,
+            "CODE_LOSS": 0.21438179188767784,
+            "VQ_LOSS": 0.0,
+            "KL_LOSS": 0.0001800264361658444,
+            "DEC_CL_LOSS": 5.028421692557859
+            },
+            "valid": {
+            "HITRATE@1": 0.017978569956727797,
+            "HITRATE@5": 0.04692973418580781,
+            "HITRATE@10": 0.06717494333632307,
+            "HITRATE@20": 0.08901710282529897,
+            "NDCG@5": 0.03253075518266715,
+            "NDCG@10": 0.039124005868134366,
+            "NDCG@20": 0.04428088294283437
+            },
+            "test": {
+            "HITRATE@1": 0.011796826705130848,
+            "HITRATE@5": 0.03533896558906353,
+            "HITRATE@10": 0.05141149804398322,
+            "HITRATE@20": 0.06913249536599544,
+            "NDCG@5": 0.023571807762553045,
+            "NDCG@10": 0.028738685403239497,
+            "NDCG@20": 0.03325818466836678
+            },
+            "best": {
+            "HITRATE@1": 0.012672573667309001,
+            "HITRATE@5": 0.03425716052080169,
+            "HITRATE@10": 0.0512569544626933,
+            "HITRATE@20": 0.06928703894651773,
+            "NDCG@5": 0.0236973008795323,
+            "NDCG@10": 0.029182421588146046,
+            "NDCG@20": 0.033768237472292864
+            }
+        }
+        },
+        {
+        "id": "0714013824",
+        "params": {
+            "config": "configs/etegrec/Amazon2014Toys_550_LOU.yaml",
+            "rqvae_path": "./logs/RQ/Amazon2014Toys_550_LOU/0713140524/tokenizer.pt",
+            "seed": 4
+        },
+        "metrics": {
+            "train": {
+            "LOSS": 0.0004251049514863753,
+            "CODE_LOSS": 0.2216440279565655,
+            "VQ_LOSS": 0.0,
+            "KL_LOSS": 0.00017335831085133383,
+            "DEC_CL_LOSS": 5.101717526473484
+            },
+            "valid": {
+            "HITRATE@1": 0.01741191015943237,
+            "HITRATE@5": 0.04698124871290445,
+            "HITRATE@10": 0.06985369874381317,
+            "HITRATE@20": 0.08994436431227087,
+            "NDCG@5": 0.03193566593915906,
+            "NDCG@10": 0.03932166514143289,
+            "NDCG@20": 0.044488079170969905
+            },
+            "test": {
+            "HITRATE@1": 0.010560478055579083,
+            "HITRATE@5": 0.032093550381975124,
+            "HITRATE@10": 0.04873274263495788,
+            "HITRATE@20": 0.06717494333632307,
+            "NDCG@5": 0.021549113623701172,
+            "NDCG@10": 0.0268922366079825,
+            "NDCG@20": 0.03162925313354496
+            },
+            "best": {
+            "HITRATE@1": 0.011745312178801832,
+            "HITRATE@5": 0.034514733155517265,
+            "HITRATE@10": 0.053523593654945516,
+            "HITRATE@20": 0.07042035854341147,
+            "NDCG@5": 0.023195764810989106,
+            "NDCG@10": 0.02931033209305546,
+            "NDCG@20": 0.03363187516685026
+            }
+        }
+        }
+    ],
+    "timestamp": "2026-07-14T04:56:45",
+    "config": {
+        "monitors": [
+        "LOSS",
+        "HitRate@1",
+        "HitRate@5",
+        "HitRate@10",
+        "HitRate@20",
+        "NDCG@5",
+        "NDCG@10",
+        "NDCG@20"
+        ],
+        "which4best": "NDCG@10",
+        "config": "configs/etegrec/Amazon2014Toys_550_LOU.yaml",
+        "dataset": "Amazon2014Toys_550_LOU",
+        "tasktag": "TaskTags.NEXTITEM",
+        "ranking": "full",
+        "retain_seen": false,
+        "optimizer": "Adam",
+        "optim_first_moment_decay": 0.9,
+        "optim_second_moment_decay": 0.999,
+        "weight_decay": 0.05,
+        "lr": null,
+        "batch_size": 512,
+        "gradient_accumulation_steps": 1,
+        "epochs": 400,
+        "eval_valid": true,
+        "eval_test": false,
+        "eval_freq": 2,
+        "early_stop_patience": 1e+23,
+        "seed": 4,
+        "maxlen": 20,
+        "sem_feat_file": "sentence-t5-xl_title_categories_brand.pkl",
+        "finetune_epochs": 100,
+        "embedding_dim": 128,
+        "attention_size": 64,
+        "intermediate_size": 512,
+        "num_heads": 4,
+        "num_layers": 6,
+        "num_decoder_layers": 6,
+        "dropout_rate": 0.1,
+        "activation_function": "relu",
+        "feed_forward_proj": "relu",
+        "num_beams": 20,
+        "n_positions": 210,
+        "num_codebooks": 3,
+        "num_codewords": 256,
+        "codebook_dim": 128,
+        "hidden_dims": "512,256",
+        "quant_loss_weight": 1.0,
+        "commit_weight": 0.25,
+        "kmeans_init": false,
+        "kmeans_iters": 100,
+        "tokenizer_dropout_rate": 0.0,
+        "rqvae_path": "./logs/RQ/Amazon2014Toys_550_LOU/0713140524/tokenizer.pt",
+        "lr_rec": 0.005,
+        "lr_id": 0.0001,
+        "cycle": 2,
+        "warm_epoch": 10,
+        "id_vq_loss": 1.0,
+        "id_code_loss": 0.0,
+        "id_kl_loss": 0.0001,
+        "id_dec_cl_loss": 0.0003,
+        "rec_vq_loss": 0.0,
+        "rec_code_loss": 1.0,
+        "rec_kl_loss": 0.0001,
+        "rec_dec_cl_loss": 0.0003,
+        "sim": "cos",
+        "lr_scheduler_type": "cosine",
+        "warmup_steps": 8000,
+        "finetune_lr": 0.0005
+    }
+    }
+
+]
