@@ -1,0 +1,15 @@
+# Data
+root: ../../data
+dataset: Yelp2018_10100_LOU
+sem_feat_file: sentence-t5-xl_item_name_categories_city.pkl
+
+# Model
+num_codewords: 32,64
+l2norm: false
+use_balancedkmeans: true
+
+# Training
+epochs: 1
+
+# Evaluation
+which4best: PPL
