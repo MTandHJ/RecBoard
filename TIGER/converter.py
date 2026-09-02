@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from freerec.utils import infoLogger
+from transformers.generation.logits_process import LogitsProcessor
 from transformers.generation.stopping_criteria import StoppingCriteria
 from transformers.tokenization_utils_base import AddedToken, PreTrainedTokenizerBase
 
@@ -389,6 +390,10 @@ class SemIDConverter:
         """
         return ItemCountStoppingCriteria(self._sid_end_id, num_items, generation_start)
 
+    def logits_processor(self, prefix: str = "item") -> LogitsProcessor:
+        """Build a batched trie constraint for Transformers generation."""
+        return BatchedTrieLogitsProcessor(self, prefix=prefix)
+
     @classmethod
     def _check_sid_vocab(
         cls, sid_vocab: Dict[str, Tuple[str, ...]]
@@ -493,6 +498,132 @@ class SemIDConverter:
         if self.SID_CONTENT_PATTERN.sub("", body).strip():
             return None
         return self._sids_to_item.get(tokens)
+
+
+class BatchedTrieLogitsProcessor(LogitsProcessor):
+    r"""Apply SID trie constraints to all generation beams on one device.
+
+    Parameters
+    ----------
+    converter : SemIDConverter
+        Converter whose SID trie defines valid token continuations.
+    prefix : str, default="item"
+        Namespace whose item trie constrains generation.
+
+    Notes
+    -----
+    Trie transitions and allowed-token masks are compiled once on CPU and
+    moved to the generation device on the first call. Only the current SID
+    suffix is scanned, so generating multiple items does not increase lookup
+    work with the length of the preceding output.
+    """
+
+    def __init__(self, converter: SemIDConverter, prefix: str = "item") -> None:
+        self.vocab_size = len(converter.tokenizer)
+        self.sid_start_id = converter._sid_start_id
+        self.sid_end_id = converter._sid_end_id
+        self.max_path_length = converter.max_num_sid_tokens
+
+        nodes: List[_Trie] = []
+        edges: List[Tuple[int, int, int]] = []
+
+        def register_node(node: _Trie) -> int:
+            state = len(nodes)
+            nodes.append(node)
+            for token_id, child in node.items():
+                child_state = register_node(child)
+                edges.append((state, token_id, child_state))
+            return state
+
+        register_node(converter._tries_by_prefix[prefix])
+        edges.sort(key=lambda edge: edge[0] * self.vocab_size + edge[1])
+
+        self.dead_state = len(nodes)
+        self.edge_keys = torch.tensor(
+            [state * self.vocab_size + token_id for state, token_id, _ in edges],
+            dtype=torch.long,
+        )
+        self.edge_states = torch.tensor(
+            [child_state for _, _, child_state in edges], dtype=torch.long
+        )
+
+        mask_rows: Dict[Tuple[int, ...], int] = {}
+
+        def register_mask(token_ids: Tuple[int, ...]) -> int:
+            if token_ids not in mask_rows:
+                mask_rows[token_ids] = len(mask_rows)
+            return mask_rows[token_ids]
+
+        state_mask_rows = [
+            register_mask(tuple(sorted(node))) for node in nodes
+        ]
+        empty_mask_row = register_mask(())
+        self.start_mask_row = register_mask((self.sid_start_id,))
+        self.state_mask_rows = torch.tensor(
+            [*state_mask_rows, empty_mask_row], dtype=torch.long
+        )
+
+        self.allowed_masks = torch.zeros(
+            (len(mask_rows), self.vocab_size), dtype=torch.bool
+        )
+        for token_ids, row in mask_rows.items():
+            if token_ids:
+                self.allowed_masks[row, list(token_ids)] = True
+
+    def __call__(
+        self,
+        input_ids: torch.LongTensor,
+        scores: torch.FloatTensor,
+    ) -> torch.FloatTensor:
+        if scores.size(1) != self.vocab_size:
+            raise ValueError(
+                f"score vocabulary size {scores.size(1)} does not match "
+                f"constraint vocabulary size {self.vocab_size}"
+            )
+        self._move_to(input_ids.device)
+
+        states, active = self._resolve_states(input_ids)
+        mask_rows = self.state_mask_rows[states]
+        mask_rows = torch.where(active, mask_rows, self.start_mask_row)
+        return scores.masked_fill(~self.allowed_masks[mask_rows], -torch.inf)
+
+    def _move_to(self, device: torch.device) -> None:
+        if self.edge_keys.device == device:
+            return
+        self.edge_keys = self.edge_keys.to(device)
+        self.edge_states = self.edge_states.to(device)
+        self.state_mask_rows = self.state_mask_rows.to(device)
+        self.allowed_masks = self.allowed_masks.to(device)
+
+    def _resolve_states(
+        self, input_ids: torch.LongTensor
+    ) -> Tuple[torch.LongTensor, torch.BoolTensor]:
+        states = torch.zeros(input_ids.size(0), dtype=torch.long, device=input_ids.device)
+        active = torch.zeros_like(states, dtype=torch.bool)
+        tail = input_ids[:, -(self.max_path_length + 1) :]
+
+        for token_ids in tail.unbind(dim=1):
+            starts = token_ids.eq(self.sid_start_id)
+            ends = token_ids.eq(self.sid_end_id)
+            transitions = active & ~starts & ~ends
+
+            next_states = self._transition(states, token_ids)
+            states = torch.where(transitions, next_states, states)
+            states = torch.where(starts, 0, states)
+            active = (active | starts) & ~ends
+        return states, active
+
+    def _transition(
+        self, states: torch.LongTensor, token_ids: torch.LongTensor
+    ) -> torch.LongTensor:
+        keys = states * self.vocab_size + token_ids
+        positions = torch.searchsorted(self.edge_keys, keys)
+        safe_positions = positions.clamp_max(self.edge_keys.numel() - 1)
+        valid = positions.lt(self.edge_keys.numel()) & self.edge_keys[safe_positions].eq(
+            keys
+        )
+        next_states = self.edge_states[safe_positions]
+        return torch.where(valid, next_states, self.dead_state)
 
 
 def prefix_allowed_tokens_fn(converter: SemIDConverter, prefix: str = "item"):

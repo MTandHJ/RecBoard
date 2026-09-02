@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from converter import SemIDConverter, prefix_allowed_tokens_fn
 from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
+from transformers.generation.logits_process import LogitsProcessorList
 from transformers.generation.stopping_criteria import StoppingCriteriaList
 
 DTYPE = torch.bfloat16
@@ -89,7 +90,6 @@ class TIGERT5(freerec.models.SeqRecArch):
         self.generate_kwargs = {
             "num_beams": cfg.num_beams,
             "num_return_sequences": cfg.num_beams,
-            "prefix_allowed_tokens_fn": prefix_allowed_tokens_fn(self.converter),
             "stopping_criteria": StoppingCriteriaList(
                 [self.converter.stopping_criteria(num_items=1)]
             ),
@@ -97,8 +97,10 @@ class TIGERT5(freerec.models.SeqRecArch):
             "return_dict_in_generate": True,
             "output_scores": True,
         }
-        if not cfg.apply_constrained_beam_search:
-            del self.generate_kwargs["prefix_allowed_tokens_fn"]
+        if cfg.apply_constrained_beam_search:
+            self.generate_kwargs["logits_processor"] = LogitsProcessorList(
+                [self.converter.logits_processor()]
+            )
 
     def format_item_ids(self, field, item_ids: Iterable[int]) -> List[str]:
         return [self.converter.format(item) for item in item_ids]
