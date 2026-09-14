@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from converter import SemIDConverter, prefix_allowed_tokens_fn
 from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
+from transformers.generation.logits_process import LogitsProcessorList
 from transformers.generation.stopping_criteria import StoppingCriteriaList
 
 DTYPE = torch.bfloat16
@@ -16,12 +17,14 @@ BEAM_SCORE_BASE = 1.0
 freerec.declare(version="1.0.1")
 
 cfg = freerec.parser.Parser()
-cfg.add_argument("--maxlen", type=int, default=50, help="maximum item sequence length")
+cfg.add_argument("--maxlen", type=int, default=20, help="maximum item sequence length")
 cfg.add_argument("--embedding-dim", type=int, default=128, help="T5 d_model")
 cfg.add_argument("--attention-size", type=int, default=64, help="T5 d_kv")
 cfg.add_argument("--intermediate-size", type=int, default=64 * 4, help="T5 d_ff")
 cfg.add_argument("--num-heads", type=int, default=4, help="number of attention heads")
-cfg.add_argument("--num-layers", type=int, default=6, help="number of encoder/decoder layers")
+cfg.add_argument(
+    "--num-layers", type=int, default=6, help="number of encoder/decoder layers"
+)
 cfg.add_argument("--dropout-rate", type=float, default=0.1, help="T5 dropout rate")
 cfg.add_argument(
     "--sid-vocab-file",
@@ -29,7 +32,9 @@ cfg.add_argument(
     default="sid_vocab.json",
     help="SID vocabulary JSON file",
 )
-cfg.add_argument("--num-beams", type=int, default=20, help="beam width for full ranking")
+cfg.add_argument(
+    "--num-beams", type=int, default=20, help="beam width for full ranking"
+)
 cfg.add_argument(
     "--apply-constrained-beam-search",
     type=eval,
@@ -38,7 +43,7 @@ cfg.add_argument(
 )
 
 cfg.set_defaults(
-    description="LETTER-T5",
+    description="TIGER-T5",
     root="../../data",
     dataset="Amazon2014Beauty_550_LOU",
     epochs=500,
@@ -54,14 +59,8 @@ cfg.compile()
 assert cfg.num_beams > 1, "beam_search requires `num_beams` > 1  ..."
 
 
-class LETTERT5(freerec.models.SeqRecArch):
-    r"""Train and rank with TIGER-style semantic-ID protocol text.
-
-    LETTER uses its own quantizer to build item semantic IDs. Once those IDs are
-    exported as ``sid_vocab.json``, the T5 recommender follows the same data
-    flow as TIGER: item histories are converted to SID text, T5 predicts the
-    next item SID block, and freerec evaluates item-level full or pool ranking.
-    """
+class TIGERT5(freerec.models.SeqRecArch):
+    """Standard T5 recommender operating on semantic-ID protocol text."""
 
     def __init__(self, dataset: freerec.data.datasets.RecDataSet) -> None:
         super().__init__(dataset)
@@ -91,7 +90,6 @@ class LETTERT5(freerec.models.SeqRecArch):
         self.generate_kwargs = {
             "num_beams": cfg.num_beams,
             "num_return_sequences": cfg.num_beams,
-            "prefix_allowed_tokens_fn": prefix_allowed_tokens_fn(self.converter),
             "stopping_criteria": StoppingCriteriaList(
                 [self.converter.stopping_criteria(num_items=1)]
             ),
@@ -99,8 +97,10 @@ class LETTERT5(freerec.models.SeqRecArch):
             "return_dict_in_generate": True,
             "output_scores": True,
         }
-        if not cfg.apply_constrained_beam_search:
-            del self.generate_kwargs["prefix_allowed_tokens_fn"]
+        if cfg.apply_constrained_beam_search:
+            self.generate_kwargs["logits_processor"] = LogitsProcessorList(
+                [self.converter.logits_processor()]
+            )
 
     def format_item_ids(self, field, item_ids: Iterable[int]) -> List[str]:
         return [self.converter.format(item) for item in item_ids]
@@ -123,7 +123,9 @@ class LETTERT5(freerec.models.SeqRecArch):
     def sure_trainpipe(self, maxlen: int, batch_size: int):
         return (
             self.dataset.train()
-            .shuffled_roll_seqs_source(minlen=2, maxlen=maxlen, keep_at_least_itself=True)
+            .shuffled_roll_seqs_source(
+                minlen=2, maxlen=maxlen, keep_at_least_itself=True
+            )
             .seq_train_yielding_pos_(start_idx_for_target=-1, end_idx_for_input=-1)
             # [1, 2, 3] -> ['item_1', 'item_2', 'item_3']
             .map_(self.format_item_ids, modified_fields=(self.ISeq, self.IPos))
@@ -157,12 +159,14 @@ class LETTERT5(freerec.models.SeqRecArch):
             .tensor_()
         )
 
-    def fit(self, data: Dict[freerec.data.fields.Field, str]) -> Dict[str, torch.Tensor]:
+    def fit(
+        self, data: Dict[freerec.data.fields.Field, str]
+    ) -> Dict[str, torch.Tensor]:
         context = self.tokenize_text(data[self.ISeq])
         targets = self.tokenize_text(data[self.IPos])
         labels = targets["input_ids"].masked_fill(
             targets["attention_mask"].eq(0),
-            -100,  # -100 is ignored by CrossEntropy loss.
+            -100,  # -100 will be ignored by CrossEntroy loss
         )
         outputs = self.t5(
             input_ids=context["input_ids"],
@@ -195,7 +199,9 @@ class LETTERT5(freerec.models.SeqRecArch):
             decoder_input_ids=self.prepare_decoder_prefix(batch_size),
             **self.generate_kwargs,
         )
-        decoded = self.converter.batch_decode(self.tokenizer.batch_decode(outputs.sequences))
+        decoded = self.converter.batch_decode(
+            self.tokenizer.batch_decode(outputs.sequences)
+        )
         candidate_ids = torch.tensor(
             # self.Item.count is used as a dummy item for invalid Item SIDs
             [items[0] if len(items) == 1 else self.Item.count for items in decoded],
@@ -215,9 +221,13 @@ class LETTERT5(freerec.models.SeqRecArch):
             device=self.device,
         ).mul_(BACKGROUND_SCORE_MAX)
         raised_scores = (
-            sequence_scores - sequence_scores.min(dim=1, keepdim=True).values + BEAM_SCORE_BASE
+            sequence_scores
+            - sequence_scores.min(dim=1, keepdim=True).values
+            + BEAM_SCORE_BASE
         )
-        return scores.scatter(dim=1, index=candidate_ids, src=raised_scores)[:, : self.Item.count]
+        return scores.scatter(
+            dim=1, index=candidate_ids, src=raised_scores
+        )[:, :self.Item.count]
 
     @torch.no_grad()
     def recommend_from_pool(
@@ -240,7 +250,9 @@ class LETTERT5(freerec.models.SeqRecArch):
         )
         outputs = self.t5(
             input_ids=context["input_ids"].repeat_interleave(candidate_count, dim=0),
-            attention_mask=context["attention_mask"].repeat_interleave(candidate_count, dim=0),
+            attention_mask=context["attention_mask"].repeat_interleave(
+                candidate_count, dim=0
+            ),
             labels=labels,
             return_dict=True,
         )
@@ -259,11 +271,13 @@ class LETTERT5(freerec.models.SeqRecArch):
         return candidate_scores.view(len(candidate_rows), candidate_count)
 
     def forward(self, data: Dict, ranking: Literal["pool", "full"] = "full"):
-        with torch.amp.autocast("cuda", dtype=DTYPE, enabled=self.device.type == "cuda"):
+        with torch.amp.autocast(
+            "cuda", dtype=DTYPE, enabled=self.device.type == "cuda"
+        ):
             return super().forward(data, ranking)
 
 
-class CoachForLETTERT5(freerec.launcher.Coach):
+class CoachForTIGER(freerec.launcher.Coach):
     def train_per_epoch(self, epoch: int):
         for data in self.dataloader:
             data = self.dict_to_device(data)
@@ -293,12 +307,12 @@ def main():
             tasktag=cfg.tasktag,
         )
 
-    model = LETTERT5(dataset)
+    model = TIGERT5(dataset)
     trainpipe = model.sure_trainpipe(cfg.maxlen, cfg.batch_size)
     validpipe = model.sure_validpipe(cfg.maxlen, ranking=cfg.ranking, batch_size=16)
     testpipe = model.sure_testpipe(cfg.maxlen, ranking=cfg.ranking, batch_size=16)
 
-    coach = CoachForLETTERT5(
+    coach = CoachForTIGER(
         dataset=dataset,
         trainpipe=trainpipe,
         validpipe=validpipe,
