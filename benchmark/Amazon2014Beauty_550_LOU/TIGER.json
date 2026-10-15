@@ -1152,7 +1152,7 @@
     },
 
     {
-    "description": "R-KMeans,sentence-t5-xl",
+    "description": "RQ-KMeans,sentence-t5-xl",
     "dataset": "Amazon2014Beauty_550_LOU",
     "tags": ["Generative", "CE", "128"],
     "runs": [
@@ -1356,7 +1356,7 @@
     },
 
     {
-    "description": "R-KMeans,sentence-t5-xl",
+    "description": "RQ-KMeans,sentence-t5-xl",
     "dataset": "Amazon2014Beauty_550_LOU",
     "tags": ["Generative", "CE", "128", "maxlen=20"],
     "runs": [
